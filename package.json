@@ -1,0 +1,32 @@
+{
+  "name": "strivon",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "start": "npm run dev:mobile",
+    "dev:mobile": "npm --prefix apps/mobile start",
+    "dev:web": "npm --prefix apps/web run dev",
+    "deploy:firestore": "firebase deploy --only firestore"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "firebase-tools": "^13.0.0",
+    "typescript": "~5.9.2"
+  },
+  "dependencies": {
+    "expo": "~54.0.30",
+    "expo-blur": "~15.0.8",
+    "expo-clipboard": "~8.0.8",
+    "expo-constants": "~18.0.12",
+    "expo-font": "~14.0.10",
+    "expo-image": "~3.0.11",
+    "expo-image-picker": "~17.0.10",
+    "expo-linking": "~8.0.11",
+    "expo-router": "~6.0.21",
+    "expo-status-bar": "~3.0.9",
+    "firebase": "^12.6.0"
+  }
+}

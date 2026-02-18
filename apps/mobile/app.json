@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "Strivon",
+    "slug": "strivon",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.strivon.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.strivon.mobile"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "mobile",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them.",
+          "cameraPermission": "The app accesses your camera to let you take photos."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#1D9BF0",
+          "sounds": []
+        }
+      ],
+      "expo-video",
+      "expo-font"
+    ],
+    "notification": {
+      "icon": "./assets/icon.png",
+      "color": "#1D9BF0"
+    }
+  }
+}

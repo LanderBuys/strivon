@@ -1,0 +1,15 @@
+.expo/
+.expo
+node_modules/
+dist/
+npm-debug.*
+*.log
+*.tmp
+
+# Environment and secrets (do not commit)
+.env
+**/.env
+.env.local
+.env.*.local
+.env.production
+

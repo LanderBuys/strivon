@@ -1,0 +1,13 @@
+{
+  "plugins": [
+    "expo-font",
+    "expo-router"
+  ],
+  "extra": {
+    "router": {},
+    "eas": {
+      "projectId": "49f726dc-a306-43a5-ba83-e4dbcb0560f9"
+    }
+  },
+  "owner": "kawasouka"
+}
