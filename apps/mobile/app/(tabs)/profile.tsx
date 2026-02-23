@@ -25,7 +25,7 @@ import { useRouter } from 'expo-router';
 import { getCurrentUserIdOrFallback } from '@/lib/api/users';
 import { getProfilePageCustomization } from '@/lib/services/badgePerksService';
 import { getUserMetrics, updateSubscriptionTier } from '@/lib/services/userMetricsService';
-import { canUseAdvancedProfileCustomization, canUseAdvancedAnalytics, getSubscriptionTier } from '@/lib/services/subscriptionService';
+import { canUseAdvancedProfileCustomization, canUseAdvancedAnalytics, getSubscriptionTier, PREMIUM_TIER_DISPLAY_NAME } from '@/lib/services/subscriptionService';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -90,7 +90,7 @@ export default function ProfileScreen() {
       tierName = 'Pro';
     } else if (subscriptionTier === 'pro') {
       newTier = 'pro-plus';
-      tierName = 'Pro+';
+      tierName = PREMIUM_TIER_DISPLAY_NAME;
     } else {
       newTier = undefined; // Back to free
       tierName = 'Free';
@@ -486,13 +486,6 @@ export default function ProfileScreen() {
               pageCustomization={pageCustomization}
             />
             <View style={styles.headerButtons}>
-              <View
-                style={[styles.subscriptionButton, styles.subscriptionBadge, { backgroundColor: subscriptionTier ? '#FFD700' : 'rgba(255, 255, 255, 0.2)' }]}
-                accessibilityLabel={`Subscription: ${subscriptionTier === 'pro' ? 'Pro' : subscriptionTier === 'pro-plus' ? 'Pro Plus' : 'Free'}`}>
-                <Text style={styles.subscriptionButtonText}>
-                  {subscriptionTier === 'pro' ? 'PRO' : subscriptionTier === 'pro-plus' ? 'PRO+' : 'FREE'}
-                </Text>
-              </View>
               <TouchableOpacity
                 style={styles.menuButton}
                 onPress={() => {
@@ -518,18 +511,6 @@ export default function ProfileScreen() {
               textColor={pageTextColor}
               accentColor={pageAccentColor}
             />
-            <TouchableOpacity
-              style={[styles.editProfileButton, { borderColor: pageAccentColor, backgroundColor: pageAccentColor + '12' }]}
-              onPress={() => {
-                haptics.selection();
-                setShowEditModal(true);
-              }}
-              activeOpacity={0.7}
-              accessibilityLabel="Edit profile"
-              accessibilityRole="button">
-              <Ionicons name="pencil" size={18} color={pageAccentColor} />
-              <Text style={[styles.editProfileButtonText, { color: pageAccentColor }]}>Edit profile</Text>
-            </TouchableOpacity>
             <ProfileTabs
               activeTab={activeTab}
               onTabChange={setActiveTab}
@@ -547,7 +528,6 @@ export default function ProfileScreen() {
       user,
       customizationKey,
       pageCustomization,
-      subscriptionTier,
       followers,
       following,
       postsCount,
@@ -609,7 +589,7 @@ export default function ProfileScreen() {
       <SafeAreaView style={[styles.safeAreaContent, { backgroundColor: pageBackgroundColor }]} edges={['top']}>
         <FlatList
         data={filteredPosts}
-        keyExtractor={(item) => item?.id || `post-${Math.random()}`}
+        keyExtractor={(item, index) => item?.id || `post-${index}`}
         renderItem={({ item }) => {
           // Aggressive validation
           if (!item || !item.id || !item.author || !item.author.id || !item.author.name) {
@@ -890,23 +870,6 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 0,
   },
-  editProfileButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.sm + 2,
-    paddingHorizontal: Spacing.lg,
-    marginHorizontal: Spacing.md,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-  },
-  editProfileButtonText: {
-    fontSize: Typography.sm + 1,
-    fontWeight: '600',
-    letterSpacing: -0.1,
-  },
   list: {
     flex: 1,
   },
@@ -932,30 +895,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
     zIndex: 50,
-  },
-  subscriptionButton: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs + 2,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 60,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  subscriptionBadge: {
-    // Display-only badge (no press state)
-  },
-  subscriptionButtonText: {
-    color: '#FFFFFF',
-    fontSize: Typography.sm,
-    fontWeight: '700',
-    letterSpacing: 0.5,
   },
   menuButton: {
     width: 40,

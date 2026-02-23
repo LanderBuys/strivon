@@ -77,7 +77,6 @@ export function ProfileEditModal({ visible, user, onClose, onSave }: ProfileEdit
   const [banner, setBanner] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [canUseVideos, setCanUseVideos] = useState(false);
   const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'pro-plus'>('free');
   const [customCreatorLabel, setCustomCreatorLabel] = useState('');
   const [featuredPostId, setFeaturedPostId] = useState<string | null>(null);
@@ -95,13 +94,12 @@ export function ProfileEditModal({ visible, user, onClose, onSave }: ProfileEdit
   // Get user badges (still used for other features)
   const { badges, loading: badgesLoading } = useUserBadges(user);
 
-  // Check if user can use videos for pfp/banner and Pro+ features (pro users can use videos for pfp/banner)
+  // Check subscription tier for Pro+ features (profile/banner are photos only)
   useEffect(() => {
     if (!visible) return;
     const checkAccess = async () => {
       const tier = await getSubscriptionTier();
       setSubscriptionTier(tier);
-      setCanUseVideos(tier === 'pro' || tier === 'pro-plus');
       if (tier === 'pro-plus') {
         setCustomCreatorLabel(user.label || '');
       }
@@ -150,31 +148,15 @@ export function ProfileEditModal({ visible, user, onClose, onSave }: ProfileEdit
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: canUseVideos 
-          ? ImagePicker.MediaTypeOptions.All 
-          : ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: false,
         quality: 0.9,
         allowsEditing: false,
-        videoMaxDuration: canUseVideos ? 10 : undefined,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         haptics.success();
-        const asset = result.assets[0];
-        // Check if it's a video
-        if (asset.type === 'video' && !canUseVideos) {
-          Alert.alert(
-            'Premium Feature',
-            'Video profile pictures are available for Pro and Pro+ subscribers. Upgrade to unlock this feature.',
-            [
-              { text: 'OK' },
-              { text: 'Upgrade', onPress: () => { onClose(); router.push('/settings/subscription-info'); } }
-            ]
-          );
-          return;
-        }
-        setAvatar(asset.uri);
+        setAvatar(result.assets[0].uri);
       }
     } catch (error) {
       console.error('Error picking avatar:', error);
@@ -192,35 +174,19 @@ export function ProfileEditModal({ visible, user, onClose, onSave }: ProfileEdit
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: canUseVideos 
-          ? ImagePicker.MediaTypeOptions.All 
-          : ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: false,
         quality: 0.8,
         allowsEditing: false,
-        videoMaxDuration: canUseVideos ? 30 : undefined,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0]) {
         haptics.success();
-        const asset = result.assets[0];
-        // Check if it's a video
-        if (asset.type === 'video' && !canUseVideos) {
-          Alert.alert(
-            'Premium Feature',
-            'Video banners are available for Pro and Pro+ subscribers. Upgrade to unlock this feature.',
-            [
-              { text: 'OK' },
-              { text: 'Upgrade', onPress: () => { onClose(); router.push('/settings/subscription-info'); } }
-            ]
-          );
-          return;
-        }
-        setBanner(asset.uri);
+        setBanner(result.assets[0].uri);
       }
     } catch (error) {
       console.error('Error picking banner:', error);
-      Alert.alert('Error', 'Failed to pick banner image.');
+      Alert.alert('Error', 'Failed to pick banner.');
     }
   };
 

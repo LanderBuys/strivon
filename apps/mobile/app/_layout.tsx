@@ -15,6 +15,7 @@ import { Colors } from '@/constants/theme';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { useOffline } from '@/hooks/useOffline';
+import '@/lib/i18n';
 
 const IN_APP_BANNER_AUTO_DISMISS_MS = 4500;
 
@@ -98,7 +99,13 @@ function LayoutContent() {
 
   return (
     <>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.background },
+          animation: 'default',
+        }}
+      />
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <OfflineBanner visible={offline} />
       {inAppNotification && (

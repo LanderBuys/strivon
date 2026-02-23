@@ -45,7 +45,7 @@ export function ThreadInput({ onSend, replyTo, onCancelReply }: ThreadInputProps
       if (media.length >= maxMedia) {
         Alert.alert(
           'Media Limit Reached',
-          `You can add up to ${maxMedia} media item${maxMedia > 1 ? 's' : ''} per comment. Upgrade to Pro for 10 items or Pro+ for 20 items.`,
+          `You can add up to ${maxMedia} media item${maxMedia > 1 ? 's' : ''} per comment. Upgrade to Pro for 10 items or Premium for 20 items.`,
           [{ text: 'OK' }]
         );
         return;

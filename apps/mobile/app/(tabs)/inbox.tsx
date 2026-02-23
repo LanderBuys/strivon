@@ -9,21 +9,17 @@ import { EmptyState } from '@/components/EmptyState';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SearchBar } from '@/components/search/SearchBar';
 import { GroupChatCreateModal } from '@/components/inbox/GroupChatCreateModal';
-import { mockConversations } from '@/lib/mocks/notifications';
 import { BorderRadius, Colors, Shadows, Spacing, Typography, hexToRgba } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Conversation } from '@/lib/mocks/notifications';
-import { createGroupChat, pinConversation, muteConversation, deleteConversation } from '@/lib/api/chat';
+import { createGroupChat, pinConversation, muteConversation, deleteConversation, getConversationsList } from '@/lib/api/chat';
 import { getUserById } from '@/lib/api/users';
-import { mockUsers } from '@/lib/mocks/users';
 import { getCurrentUserIdOrFallback } from '@/lib/api/users';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { applyInboxFilters } from '@/lib/utils/inboxFilters';
-import { getMockMessages } from '@/lib/mocks/messages';
-import { ThreadMessage } from '@/types/post';
 import { formatRelativeTime } from '@/lib/utils/time';
 import { getMaxConversations } from '@/lib/services/subscriptionService';
 
@@ -32,13 +28,20 @@ export default function InboxScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const router = useRouter();
   const haptics = useHapticFeedback();
-  const [conversations, setConversations] = useState(mockConversations);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const loadConversations = useCallback(async () => {
+    try {
+      const list = await getConversationsList();
+      setConversations(list);
+    } catch (e) {
+      console.error('Error loading conversations:', e);
+    }
+  }, []);
   useFocusEffect(
     useCallback(() => {
-      // Keep inbox list in sync with mockConversations updates (messages, call logs, pin/mute).
-      setConversations([...mockConversations]);
+      loadConversations();
       return () => {};
-    }, [])
+    }, [loadConversations])
   );
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,40 +65,15 @@ export default function InboxScreen() {
     setMaxConversations(max);
   };
 
-  // Search through all messages across all conversations
+  // Search: filter conversations by user name or group name
   const searchResults = useMemo(() => {
     if (!debouncedSearchQuery.trim()) return [];
-    
     const q = debouncedSearchQuery.trim().toLowerCase();
-    const results: Array<{
-      message: ThreadMessage;
-      conversation: Conversation;
-      conversationId: string;
-    }> = [];
-
-    conversations.forEach(conversation => {
-      try {
-        const messages = getMockMessages(conversation.id);
-        if (messages && messages.length > 0) {
-          messages.forEach(message => {
-            const content = (message.content || '').toLowerCase();
-            if (content.includes(q)) {
-              results.push({
-                message,
-                conversation,
-                conversationId: conversation.id,
-              });
-            }
-          });
-        }
-      } catch (error) {
-        // Skip conversations without messages
-      }
-    });
-
-    // Sort by message date (most recent first)
-    return results.sort((a, b) => 
-      new Date(b.message.createdAt).getTime() - new Date(a.message.createdAt).getTime()
+    return conversations.filter(
+      (c) =>
+        c.user.name.toLowerCase().includes(q) ||
+        (c.groupName || '').toLowerCase().includes(q) ||
+        (c.user.handle || '').toLowerCase().includes(q)
     );
   }, [conversations, debouncedSearchQuery]);
 
@@ -136,14 +114,13 @@ export default function InboxScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      setConversations([...mockConversations]);
+      await loadConversations();
     } catch (error) {
       console.error('Error loading inbox data:', error);
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [loadConversations]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -168,10 +145,6 @@ export default function InboxScreen() {
           conv.id === conversationId ? { ...conv, pinned } : conv
         )
       );
-      const conv = mockConversations.find(c => c.id === conversationId);
-      if (conv) {
-        conv.pinned = pinned;
-      }
     } catch (error) {
       console.error('Error pinning conversation:', error);
     }
@@ -186,10 +159,6 @@ export default function InboxScreen() {
           conv.id === conversationId ? { ...conv, muted } : conv
         )
       );
-      const conv = mockConversations.find(c => c.id === conversationId);
-      if (conv) {
-        conv.muted = muted;
-      }
     } catch (error) {
       console.error('Error muting conversation:', error);
     }
@@ -200,10 +169,6 @@ export default function InboxScreen() {
       haptics.medium();
       await deleteConversation(conversationId);
       setConversations(prev => prev.filter(conv => conv.id !== conversationId));
-      const index = mockConversations.findIndex(c => c.id === conversationId);
-      if (index !== -1) {
-        mockConversations.splice(index, 1);
-      }
     } catch (error) {
       console.error('Error deleting conversation:', error);
       Alert.alert('Error', 'Failed to delete conversation. Please try again.');
@@ -238,30 +203,33 @@ export default function InboxScreen() {
       const conversationId = await createGroupChat(groupName.trim(), memberIds);
       
       const members = await Promise.all(memberIds.map(id => getUserById(id)));
-      const validMembers = members.filter(Boolean);
+      const validMembers = members.filter((u): u is NonNullable<typeof u> => u != null);
       
       if (validMembers.length === 0) {
         Alert.alert('Error', 'No valid members selected.');
         return;
       }
       
-      const currentUser = mockUsers.find(u => u.id === getCurrentUserIdOrFallback()) || mockUsers[0];
+      const currentUser = await getUserById(getCurrentUserIdOrFallback());
+      if (!currentUser) {
+        Alert.alert('Error', 'Could not load your profile.');
+        return;
+      }
       
       const newConversation: Conversation = {
         id: conversationId,
-        user: validMembers[0],
+        user: { id: validMembers[0].id, name: validMembers[0].name, handle: validMembers[0].handle, avatar: validMembers[0].avatar ?? null },
         lastMessage: 'Group chat created',
         lastMessageTime: new Date().toISOString(),
         unreadCount: 0,
         isGroup: true,
         groupName: groupName.trim(),
-        members: [currentUser, ...validMembers],
+        members: [{ id: currentUser.id, name: currentUser.name, handle: currentUser.handle, avatar: currentUser.avatar ?? null }, ...validMembers.map(u => ({ id: u.id, name: u.name, handle: u.handle, avatar: u.avatar ?? null }))],
         pinned: false,
         muted: false,
       };
       
       setConversations(prev => [newConversation, ...prev]);
-      mockConversations.push(newConversation);
       router.push(`/chat/${conversationId}` as any);
     } catch (error) {
       console.error('Error creating group chat:', error);
@@ -443,73 +411,20 @@ export default function InboxScreen() {
       {debouncedSearchQuery.trim() ? (
         <FlatList
           data={searchResults}
-          keyExtractor={(item, index) => `${item.conversationId}-${item.message.id}-${index}`}
+          keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.messageResultItem, { 
-                backgroundColor: colors.cardBackground,
-                borderBottomColor: colors.divider,
-              }]}
+            <ConversationItem
+              conversation={item}
               onPress={() => {
-                // Mark as read and open chat scrolled to the matched message
                 setConversations(prev =>
-                  prev.map(conv =>
-                    conv.id === item.conversationId ? { ...conv, unreadCount: 0 } : conv
-                  )
+                  prev.map(conv => (conv.id === item.id ? { ...conv, unreadCount: 0 } : conv))
                 );
-                router.push(
-                  (`/chat/${item.conversationId}?messageId=${encodeURIComponent(item.message.id)}` as any)
-                );
+                router.push(`/chat/${item.id}` as any);
               }}
-              activeOpacity={0.6}
-            >
-              <View style={styles.messageResultHeader}>
-                <View style={styles.messageResultUser}>
-                  {item.conversation.isGroup ? (
-                    <View style={[
-                      styles.messageResultAvatar, 
-                      { 
-                        backgroundColor: hexToRgba(colors.primary, 0.08),
-                      }
-                    ]}>
-                      <Ionicons name="people" size={18} color={hexToRgba(colors.primary, 0.7)} />
-                    </View>
-                  ) : (
-                    item.conversation.user.avatar ? (
-                      <ExpoImage
-                        source={{ uri: item.conversation.user.avatar }}
-                        style={styles.messageResultAvatar}
-                        contentFit="cover"
-                      />
-                    ) : (
-                      <View style={[
-                        styles.messageResultAvatar, 
-                        { 
-                          backgroundColor: hexToRgba(colors.primary, 0.08),
-                        }
-                      ]}>
-                        <Text style={[styles.messageResultAvatarText, { color: hexToRgba(colors.primary, 0.7), fontWeight: '600' }]}>
-                          {item.conversation.user.name.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                    )
-                  )}
-                  <View style={styles.messageResultUserInfo}>
-                    <Text style={[styles.messageResultName, { color: colors.text }]}>
-                      {item.conversation.isGroup 
-                        ? (item.conversation.groupName || 'Group Chat')
-                        : item.conversation.user.name}
-                    </Text>
-                    <Text style={[styles.messageResultTime, { color: colors.secondary }]}>
-                      {formatRelativeTime(item.message.createdAt)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-              <Text style={[styles.messageResultContent, { color: colors.text }]} numberOfLines={3}>
-                {typeof item.message.content === 'string' ? item.message.content : String(item.message.content || '')}
-              </Text>
-            </TouchableOpacity>
+              onPin={() => handlePinConversation(item.id, !item.pinned)}
+              onMute={() => handleMuteConversation(item.id, !item.muted)}
+              onDelete={() => handleDeleteConversation(item.id)}
+            />
           )}
           contentContainerStyle={styles.listContent}
           style={[styles.list, { backgroundColor: colors.background }]}
@@ -518,7 +433,7 @@ export default function InboxScreen() {
             <EmptyState
               icon="search"
               title="No results"
-              message={`No messages or conversations match "${debouncedSearchQuery}"`}
+              message={`No conversations match "${debouncedSearchQuery}"`}
             />
           }
           removeClippedSubviews={true}

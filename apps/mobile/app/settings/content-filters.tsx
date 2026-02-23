@@ -74,6 +74,9 @@ export default function ContentFiltersScreen() {
           const userPromises = parsed.mutedUsers.map(async (userId: string) => {
             try {
               const user = await getUserById(userId);
+              if (!user) {
+                return { id: userId, name: 'Unknown User', handle: `@user${userId}`, avatar: null };
+              }
               return {
                 id: user.id,
                 name: user.name,

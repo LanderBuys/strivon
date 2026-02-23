@@ -1,15 +1,12 @@
+import { useContext } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
-import { useTheme } from '@/contexts/ThemeContext';
+import { ThemeContext } from '@/contexts/ThemeContext';
 
-// For backward compatibility, keep the old hook but use the new context
+// Call hooks unconditionally so order is always the same
 export function useColorScheme() {
-  try {
-    const { effectiveTheme } = useTheme();
-    return effectiveTheme;
-  } catch {
-    // Fallback if ThemeProvider is not available
-    return useRNColorScheme() ?? 'light';
-  }
+  const themeContext = useContext(ThemeContext);
+  const systemScheme = useRNColorScheme() ?? 'light';
+  return themeContext ? themeContext.effectiveTheme : systemScheme;
 }
 
 

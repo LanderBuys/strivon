@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, Dimensions, Animated } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList, Dimensions, Animated, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Image as ExpoImage } from 'expo-image';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
@@ -14,6 +13,7 @@ import { analyticsService } from '@/lib/services/analyticsService';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const ONBOARDING_KEY = '@strivon_onboarding_completed';
+const BG_IMAGE = require('@/assets/strivonbackgroundimage.png');
 
 interface OnboardingSlide {
   id: string;
@@ -33,6 +33,7 @@ function SlideItem({
   colors: (typeof Colors)['light'];
 }) {
   const { opacity, scale } = useEntranceAnimation(280, index * 50);
+  const isWelcomeSlide = item.id === '1';
 
   return (
     <View style={[styles.slide, { width: SCREEN_WIDTH }]}>
@@ -45,9 +46,11 @@ function SlideItem({
           },
         ]}
       >
-        <View style={[styles.iconContainer, { backgroundColor: colors.primary + '15' }]}>
-          <Ionicons name={item.icon as any} size={64} color={colors.primary} />
-        </View>
+        {!isWelcomeSlide && (
+          <View style={[styles.iconContainer, { backgroundColor: colors.primary + '15' }]}>
+            <Ionicons name={item.icon as any} size={64} color={colors.primary} />
+          </View>
+        )}
         <Text style={[styles.slideTitle, { color: colors.text }]}>{item.title}</Text>
         <Text style={[styles.slideDescription, { color: colors.secondary }]}>
           {item.description}
@@ -117,10 +120,10 @@ export default function OnboardingScreen() {
       await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
       analyticsService.trackFunnel('onboarding', 'completed', { screen_index: currentIndex });
       haptics.success();
-      router.replace('/(tabs)');
+      router.replace('/');
     } catch (error) {
       console.error('Error saving onboarding status:', error);
-      router.replace('/(tabs)');
+      router.replace('/');
     }
   };
 
@@ -138,21 +141,22 @@ export default function OnboardingScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        {currentIndex < slides.length - 1 && (
-          <TouchableOpacity
-            onPress={handleSkip}
-            style={styles.skipButton}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.skipText, { color: colors.secondary }]}>Skip</Text>
-          </TouchableOpacity>
-        )}
-        {currentIndex === slides.length - 1 && <View style={{ width: 60 }} />}
-      </View>
+    <ImageBackground source={BG_IMAGE} style={styles.bgImage} resizeMode="cover">
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <View style={styles.header}>
+          {currentIndex < slides.length - 1 && (
+            <TouchableOpacity
+              onPress={handleSkip}
+              style={styles.skipButton}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.skipText, { color: colors.secondary }]}>Skip</Text>
+            </TouchableOpacity>
+          )}
+          {currentIndex === slides.length - 1 && <View style={{ width: 60 }} />}
+        </View>
 
-      <FlatList
+        <FlatList
         ref={flatListRef}
         data={slides}
         renderItem={renderSlide}
@@ -214,11 +218,17 @@ export default function OnboardingScreen() {
           </TouchableOpacity>
         </View>
       </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  bgImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
   },
@@ -245,6 +255,7 @@ const styles = StyleSheet.create({
   slideContent: {
     alignItems: 'center',
     maxWidth: 320,
+    marginTop: 400,
   },
   iconContainer: {
     width: 120,

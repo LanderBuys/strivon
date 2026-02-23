@@ -149,7 +149,7 @@ export default function CreatePostScreen() {
     } catch (error: any) {
       console.error('Error saving draft:', error);
       if (error?.message?.startsWith('DRAFT_LIMIT_REACHED')) {
-        const maxDrafts = error.message.split(':')[1] || '5';
+        const maxDrafts = error.message.split(':')[1] || '1';
         Alert.alert(
           'Draft Limit Reached',
           `You can save up to ${maxDrafts} drafts with your current plan. Upgrade to Pro for unlimited drafts.`,
@@ -308,7 +308,7 @@ export default function CreatePostScreen() {
       if (media.length >= maxMediaItems) {
         Alert.alert(
           'Media Limit Reached',
-          `You can add up to ${maxMediaItems} media item${maxMediaItems > 1 ? 's' : ''} per post. Upgrade to Pro for 10 items or Pro+ for 20 items.`,
+          `You can add up to ${maxMediaItems} media item${maxMediaItems > 1 ? 's' : ''} per post. Upgrade to Pro for 10 items or Premium for 20 items.`,
           [
             { text: 'OK' },
             { text: 'Upgrade', onPress: () => router.push('/settings/subscription-info') },
@@ -594,8 +594,13 @@ export default function CreatePostScreen() {
         }
       }, 0);
       
-      showToast('Post created!', 'success');
-      
+      showToast(
+        newPost.status === 'processing'
+          ? 'Post created! It will be visible after review.'
+          : 'Post created!',
+        'success'
+      );
+
       // Show conversion modal if rewarded boost was used
       if (boostResult && boostResult.reachImprovement) {
         setShowBoostConversionModal(true);
@@ -824,7 +829,7 @@ export default function CreatePostScreen() {
         )}
         {!loadingSpaces && spaces.length === 0 && spacesLoadError && (
           <View style={[styles.spaceSelectorContainer, styles.spaceErrorRow]}>
-            <Text style={[styles.spaceErrorText, { color: colors.secondary }]}>Couldn't load spaces</Text>
+            <Text style={[styles.spaceErrorText, { color: colors.secondary }]}>Couldn&apos;t load spaces</Text>
             <TouchableOpacity
               onPress={() => loadSpaces()}
               style={[styles.spaceRetryButton, { backgroundColor: colors.primary }]}

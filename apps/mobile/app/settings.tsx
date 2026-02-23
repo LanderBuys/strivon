@@ -15,6 +15,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { SettingsSkeleton } from '@/components/settings/SettingsSkeleton';
 import { useEntranceAnimation } from '@/hooks/useEntranceAnimation';
 import { useAuth } from '@/contexts/AuthContext';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface SettingItemProps {
   icon: string;
@@ -187,19 +188,20 @@ export default function SettingsScreen() {
 
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.header, { borderBottomColor: colors.divider }]}>
-        <TouchableOpacity
-          onPress={() => { haptics.light(); router.back(); }}
-          style={styles.backButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityLabel="Back"
-          accessibilityRole="button">
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Settings</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <ErrorBoundary>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { borderBottomColor: colors.divider }]}>
+          <TouchableOpacity
+            onPress={() => { haptics.light(); router.back(); }}
+            style={styles.backButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel="Back"
+            accessibilityRole="button">
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Settings</Text>
+          <View style={{ width: 40 }} />
+        </View>
 
       <ScrollView
         style={styles.content}
@@ -461,6 +463,7 @@ export default function SettingsScreen() {
         onHide={hideToast}
       />
     </SafeAreaView>
+    </ErrorBoundary>
   );
 }
 

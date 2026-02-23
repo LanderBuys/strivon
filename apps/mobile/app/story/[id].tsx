@@ -27,6 +27,8 @@ import { Colors, Spacing, BorderRadius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useReportBlock } from '@/hooks/useReportBlock';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { PlaceholderUrls } from '@/constants/urls';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const STORY_DURATION = 5000;
@@ -358,20 +360,23 @@ export default function StoryViewerScreen() {
   // Still loading stories from API
   if (!storiesLoaded) {
     return (
-      <View style={styles.container}>
+      <ErrorBoundary>
+        <View style={styles.container}>
         <StatusBar barStyle="light-content" />
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#FFFFFF" />
           <Text style={[styles.loadingText, { marginTop: Spacing.md }]}>Loading...</Text>
         </View>
       </View>
+      </ErrorBoundary>
     );
   }
 
   // Load failed
   if (loadError) {
     return (
-      <View style={styles.container}>
+      <ErrorBoundary>
+        <View style={styles.container}>
         <StatusBar barStyle="light-content" />
         <View style={[styles.center, styles.errorCenter]}>
           <View style={styles.errorIconWrap}>
@@ -401,6 +406,7 @@ export default function StoryViewerScreen() {
           </View>
         </View>
       </View>
+      </ErrorBoundary>
     );
   }
 
@@ -408,7 +414,8 @@ export default function StoryViewerScreen() {
   const storyNotFound = id && !allStories.some((s) => s.id === id);
   if (storyNotFound) {
     return (
-      <View style={styles.container}>
+      <ErrorBoundary>
+        <View style={styles.container}>
         <StatusBar barStyle="light-content" />
         <View style={styles.center}>
           <Ionicons name="image-outline" size={56} color="rgba(255,255,255,0.5)" />
@@ -418,12 +425,14 @@ export default function StoryViewerScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      </ErrorBoundary>
     );
   }
 
   if (!currentStory || currentUserStories.length === 0 || userStoriesGroups.length === 0) {
     return (
-      <View style={styles.container}>
+      <ErrorBoundary>
+        <View style={styles.container}>
         <StatusBar barStyle="light-content" />
         <View style={styles.center}>
           <Text style={styles.loadingText}>No stories yet</Text>
@@ -432,16 +441,18 @@ export default function StoryViewerScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      </ErrorBoundary>
     );
   }
 
-  const storyMediaUrl = currentStory.media?.url || currentStory.mediaUrl || currentStory.author.avatar || `https://picsum.photos/400/800?random=${currentStory.id}`;
+  const storyMediaUrl = currentStory.media?.url || currentStory.mediaUrl || currentStory.author.avatar || PlaceholderUrls.storyImage(currentStory.id);
   const isVideoStory = currentStory.media?.type === 'video' || currentStory.mediaType === 'video';
   const overlays = currentStory.overlays || [];
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <ErrorBoundary>
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" />
       
       {/* Story media (image or video) */}
       <View style={styles.imageWrapper}>
@@ -454,7 +465,7 @@ export default function StoryViewerScreen() {
               style={styles.storyImage}
               contentFit="cover"
               transition={200}
-              placeholder={{ uri: 'https://via.placeholder.com/400x800/000000/FFFFFF?text=Story' }}
+              placeholder={{ uri: PlaceholderUrls.imagePlaceholder() }}
             />
           )}
           {overlays.map((overlay) => {
@@ -493,7 +504,7 @@ export default function StoryViewerScreen() {
       <View style={[styles.topHeader, { paddingTop: insets.top + 8 + 3 + 8 + 6 }]}>
         <View style={styles.userInfo}>
           <ExpoImage
-            source={{ uri: currentStory.author.avatar || 'https://i.pravatar.cc/150?img=1' }}
+            source={{ uri: currentStory.author.avatar || PlaceholderUrls.avatarGeneric() }}
             style={styles.headerAvatar}
             contentFit="cover"
           />
@@ -667,7 +678,7 @@ export default function StoryViewerScreen() {
                   currentStory.viewers.map((v: StoryViewer) => (
                     <View key={v.id} style={styles.viewerRow}>
                       <ExpoImage
-                        source={{ uri: v.avatar || 'https://i.pravatar.cc/150?u=' + v.id }}
+                        source={{ uri: v.avatar || PlaceholderUrls.avatar(v.id) }}
                         style={styles.viewerAvatar}
                         contentFit="cover"
                       />
@@ -718,6 +729,7 @@ export default function StoryViewerScreen() {
         />
       </View>
     </View>
+    </ErrorBoundary>
   );
 }
 

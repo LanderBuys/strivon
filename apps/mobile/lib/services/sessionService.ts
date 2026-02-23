@@ -66,7 +66,7 @@ const formatTimeAgo = (timestamp: string): string => {
 export async function initializeCurrentSession(): Promise<ActiveSession> {
   try {
     // Check if we have a current session ID
-    let currentSessionId = await AsyncStorage.getItem(CURRENT_SESSION_ID_KEY);
+    const currentSessionId = await AsyncStorage.getItem(CURRENT_SESSION_ID_KEY);
     const allSessions = await getAllSessions();
 
     if (currentSessionId) {

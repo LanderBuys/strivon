@@ -40,8 +40,7 @@ export const StoriesBar = React.memo(function StoriesBar({ stories }: StoriesBar
     });
     
     // Convert map to array - one story per user
-    let uniqueUserStories = Array.from(userMap.values());
-    
+    const uniqueUserStories = Array.from(userMap.values());
     // Sort: unviewed stories first, then viewed stories at the end
     uniqueUserStories.sort((a, b) => {
       const aViewed = a.isViewed ? 1 : 0;

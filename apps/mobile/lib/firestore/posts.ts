@@ -32,12 +32,17 @@ function toAuthor(data: Record<string, unknown>): User {
 
 function toPost(id: string, data: Record<string, unknown>, isLiked?: boolean, isSaved?: boolean): Post {
   const author = (data.author as Record<string, unknown>) || {};
+  const createdAt = data.createdAt;
+  const createdAtStr =
+    typeof createdAt === 'string'
+      ? createdAt
+      : (createdAt as { toDate?: () => Date })?.toDate?.()?.toISOString?.() ?? new Date().toISOString();
   return {
     id,
     author: toAuthor(author),
     content: data.content as string | undefined,
     title: data.title as string | undefined,
-    createdAt: (data.createdAt as string) || new Date().toISOString(),
+    createdAt: createdAtStr,
     likes: (data.likes as number) || 0,
     saves: (data.saves as number) || 0,
     comments: (data.comments as number) ?? 0,
@@ -48,19 +53,34 @@ function toPost(id: string, data: Record<string, unknown>, isLiked?: boolean, is
     poll: data.poll as any,
     contentWarning: data.contentWarning as string | null | undefined,
     hashtags: data.hashtags as string[] | undefined,
+    ownerUid: data.ownerUid as string | undefined,
+    mediaId: data.mediaId as string | undefined,
+    visibility: data.visibility as 'public' | 'private' | undefined,
+    status: (data.status as 'draft' | 'processing' | 'published' | 'rejected') || 'published',
   };
 }
 
 export async function createPostFirestore(
   author: User,
-  data: { content?: string; title?: string; media?: PostMedia[]; poll?: any; contentWarning?: string | null; hashtags?: string[] }
+  data: {
+    content?: string;
+    title?: string;
+    media?: PostMedia[];
+    poll?: any;
+    contentWarning?: string | null;
+    hashtags?: string[];
+    /** When set, post is created as processing/private until media is approved. */
+    mediaId?: string;
+  }
 ): Promise<Post> {
   const db = getFirestoreDb();
   if (!db) throw new Error('Firestore not configured');
   const id = `post-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  const hasMediaPending = !!data.mediaId;
   const postData = {
     id,
     authorId: author.id,
+    ownerUid: author.id,
     author: {
       id: author.id,
       name: author.name,
@@ -81,6 +101,9 @@ export async function createPostFirestore(
     contentWarning: data.contentWarning || null,
     hashtags: data.hashtags || [],
     updatedAt: serverTimestamp(),
+    visibility: hasMediaPending ? 'private' : 'public',
+    status: hasMediaPending ? 'processing' : 'published',
+    ...(data.mediaId ? { mediaId: data.mediaId } : {}),
   };
   await setDoc(doc(db, POSTS, id), postData);
   return toPost(id, postData as Record<string, unknown>);
@@ -102,6 +125,8 @@ export async function getFeedPostsFirestore(
   );
   const snap = await getDocs(q);
   let docs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Record<string, unknown>));
+  // Only show published posts (omit processing, needs_review, rejected)
+  docs = docs.filter((d) => (d.status as string | undefined) !== 'processing' && (d.status as string | undefined) !== 'rejected');
   if (followingIds && followingIds.length > 0) {
     const set = new Set([uid, ...followingIds]);
     docs = docs.filter((d) => set.has((d.authorId as string) || ''));

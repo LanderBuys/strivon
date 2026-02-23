@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Typography } from '@/constants/theme';
+import { sanitizeForDisplay } from '@/lib/utils/sanitize';
 
 interface FormattedPostTextProps {
   text: string;
@@ -39,7 +40,7 @@ export function FormattedPostText({
 
   const parts: Array<{ text: string; type: 'text' | 'url' | 'mention' | 'hashtag' | 'bold' | 'italic' | 'code' }> = [];
   let lastIndex = 0;
-  let processedText = text;
+  const processedText = sanitizeForDisplay(text);
 
   // Find all matches
   const matches: Array<{ index: number; length: number; type: string; content: string }> = [];

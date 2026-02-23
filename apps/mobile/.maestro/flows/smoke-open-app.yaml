@@ -1,0 +1,11 @@
+# Smoke test: launch app. Add assertions below when testIDs are set (e.g. testID="feed-screen").
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text:
+        oneOf:
+          - "For You"
+          - "Following"
+          - "Sign in"
+          - "Community"
+    timeout: 15000

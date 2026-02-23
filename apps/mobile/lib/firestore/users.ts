@@ -27,6 +27,14 @@ export interface FirestoreUser {
   country?: string;
   joinDate: string;
   email?: string;
+  /** True after user completes the post-signup profile step (username, age, etc.) */
+  profileCompleted?: boolean;
+  /** User's age (collected at profile completion) */
+  age?: number;
+  /** Set by admin; blocks uploads and new posts */
+  banned?: boolean;
+  /** Set on CSAM match; account frozen */
+  status?: 'active' | 'frozen';
 }
 
 function toUser(docId: string, d: Record<string, unknown>): FirestoreUser {
@@ -43,6 +51,10 @@ function toUser(docId: string, d: Record<string, unknown>): FirestoreUser {
     country: data.country as string | undefined,
     joinDate: (data.joinDate as string) || new Date().toISOString(),
     email: data.email as string | undefined,
+    profileCompleted: data.profileCompleted as boolean | undefined,
+    age: data.age as number | undefined,
+    banned: data.banned as boolean | undefined,
+    status: data.status as 'active' | 'frozen' | undefined,
   };
 }
 
@@ -55,18 +67,27 @@ export async function getFirestoreUser(id: string): Promise<FirestoreUser | null
   return toUser(snap.id, (snap.data() as Record<string, unknown>) || {});
 }
 
+/** Remove undefined values; Firestore does not allow undefined. */
+function withoutUndefined<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v !== undefined) out[k] = v;
+  }
+  return out;
+}
+
 export async function setFirestoreUser(id: string, data: Partial<FirestoreUser>): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
   const ref = doc(db, USERS, id);
-  await setDoc(ref, { ...data, id, updatedAt: serverTimestamp() }, { merge: true });
+  await setDoc(ref, withoutUndefined({ ...data, id, updatedAt: serverTimestamp() } as Record<string, unknown>), { merge: true });
 }
 
 export async function updateFirestoreUser(id: string, updates: Record<string, unknown>): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
   const ref = doc(db, USERS, id);
-  await updateDoc(ref, { ...updates, updatedAt: serverTimestamp() });
+  await setDoc(ref, withoutUndefined({ ...updates, id, updatedAt: serverTimestamp() }), { merge: true });
 }
 
 export async function getFollowingIds(userId: string): Promise<string[]> {
@@ -113,6 +134,13 @@ export async function getFollowerIds(targetUserId: string): Promise<string[]> {
   return snap.docs.map((d) => (d.data().userId as string) || '').filter(Boolean);
 }
 
+/** Returns true if the user should be shown the complete-profile screen. */
+export async function isProfileIncomplete(uid: string): Promise<boolean> {
+  const profile = await getFirestoreUser(uid);
+  if (!profile) return true;
+  return profile.profileCompleted !== true;
+}
+
 /** Create user doc if it doesn't exist (call after sign-up or first sign-in). */
 export async function ensureFirestoreUser(
   uid: string,
@@ -130,5 +158,6 @@ export async function ensureFirestoreUser(
     avatar: photoURL || null,
     joinDate: new Date().toISOString(),
     email: email || undefined,
+    profileCompleted: false,
   });
 }

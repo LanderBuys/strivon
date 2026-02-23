@@ -6,6 +6,7 @@ import { ThreadMessage } from '@/types/post';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
+import { sanitizeForDisplay } from '@/lib/utils/sanitize';
 
 const DOUBLE_TAP_DELAY_MS = 280;
 
@@ -45,7 +46,8 @@ export function MessageBubble({ message, onReaction, onReply, replyToMessage, is
   };
 
   const likeCount = message.reactions?.reduce((sum, r) => sum + r.count, 0) ?? 0;
-  const contentStr = message.content && typeof message.content === 'string' ? message.content : String(message.content || '');
+  const rawContent = message.content && typeof message.content === 'string' ? message.content : String(message.content || '');
+  const contentStr = sanitizeForDisplay(rawContent);
 
   const alreadyLiked = message.reactions?.some(r => r.userReacted) ?? false;
 

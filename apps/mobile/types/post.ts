@@ -18,6 +18,10 @@ export interface PostMedia {
   duration?: number; // For videos
 }
 
+/** Post visibility and status for moderation pipeline. */
+export type PostVisibility = 'public' | 'private';
+export type PostStatus = 'draft' | 'processing' | 'published' | 'rejected';
+
 export interface Post {
   id: string;
   author: User;
@@ -36,6 +40,11 @@ export interface Post {
   poll?: any;
   media?: PostMedia[];
   contentWarning?: string | null; // Content warning text
+  // Moderation pipeline: post stays private until media approved
+  ownerUid?: string;
+  mediaId?: string;
+  visibility?: PostVisibility;
+  status?: PostStatus;
   // Boost-related fields
   isBoosted?: boolean;
   boostType?: 'rewarded' | 'pro' | 'pro-plus';

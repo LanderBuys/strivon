@@ -110,7 +110,7 @@ The mobile app uses Expo Router for file-based routing. Key directories:
 
 ## 🌐 Web App Development
 
-The web app is built with Next.js and Tailwind CSS. It's currently in early development.
+The web app (Next.js 16, Tailwind CSS 4) provides the marketing site (home, about, dashboard) and an **admin dashboard** at `/admin` for reports and moderation. Admin uses Firebase Auth and Firestore; see [apps/web/FIREBASE_ENV.md](apps/web/FIREBASE_ENV.md) and [scripts/README-ADMIN.md](scripts/README-ADMIN.md) for setup.
 
 ## 🎨 Design System
 
@@ -167,6 +167,12 @@ Currently, the app uses mock data. The API client is set up for future backend i
 
 To integrate with a backend, update the API functions in `lib/api/` and set `EXPO_PUBLIC_API_URL` environment variable.
 
+### Internationalization (i18n)
+The mobile app includes a minimal i18n setup (`lib/i18n.ts`, `locales/en.json`). Use `const { t } = useTranslation();` and `t('common.loading')` in components. Add more keys to `locales/en.json` and new locale files for other languages.
+
+### Deep linking
+The app uses the `mobile://` scheme. See **[apps/mobile/EAS_SECRETS_SETUP.md](apps/mobile/EAS_SECRETS_SETUP.md)** (Deep linking section) for supported URLs.
+
 ## 🆕 Version 2.0.0 Highlights
 
 See [CHANGELOG.md](apps/mobile/CHANGELOG.md) for detailed release notes.
@@ -191,6 +197,16 @@ See [CHANGELOG.md](apps/mobile/CHANGELOG.md) for detailed release notes.
 ```bash
 # Type-check mobile app
 cd apps/mobile && npm run typecheck
+
+# Unit tests (mobile)
+cd apps/mobile && npm run test
+
+# Lint (mobile)
+cd apps/mobile && npm run lint
+
+# E2E with Maestro (app must be running on simulator/device)
+curl -Ls "https://get.maestro.mobile.dev" | bash
+cd apps/mobile && maestro test .maestro/
 
 # Lint and build web app
 cd apps/web && npm run lint && npm run build

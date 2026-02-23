@@ -26,7 +26,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { getSpaceById } from '@/lib/api/spaces';
 import { getUserById } from '@/lib/api/users';
-import { mockUserSpaces } from '@/lib/mocks/users';
 import { useCurrentUserId } from '@/hooks/useCurrentUserId';
 import { formatDistanceToNow } from '@/lib/utils/time';
 import { MediaViewer } from '@/components/media/MediaViewer';
@@ -85,7 +84,7 @@ export default function SpaceAnnouncementsScreen() {
       const space = await getSpaceById(spaceId);
       setSpaceOwnerId(space?.ownerId);
       setSpaceName(space?.name || 'Space');
-      const joined = Boolean((space as any)?.isJoined) || mockUserSpaces.includes(spaceId);
+      const joined = Boolean((space as any)?.isJoined);
       const owner = Boolean(space?.ownerId && (space.ownerId === currentUserId || space.ownerId === `user-${currentUserId}`));
       setIsJoined(joined || owner);
 

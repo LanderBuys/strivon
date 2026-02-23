@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Space, SpaceMember, SpaceEvent, Post, JoinRequest } from '@/types/post';
 import { getSpaceById, joinSpace, leaveSpace, updateSpace, getSpaceMembers, getSpacePosts, getSpaceEvents, createSpaceEvent, joinSpaceEvent, requestToJoinSpace, getJoinRequests, approveJoinRequest, rejectJoinRequest, getUserJoinRequest, kickMember, banMember, updateMemberRole, getModerationLogs, addSpaceResource, removeSpaceResource, createChannel } from '@/lib/api/spaces';
-import { mockUsers } from '@/lib/mocks/users';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Spacing, Typography, BorderRadius } from '@/constants/theme';
@@ -12,16 +11,17 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Image as ExpoImage } from 'expo-image';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { Ionicons } from '@expo/vector-icons';
-import { mockUserSpaces } from '@/lib/mocks/users';
 import { PostCard } from '@/components/feed/PostCard';
 import { SpaceAnnouncements } from '@/components/spaces/SpaceAnnouncements';
 import { canPinPosts, getMaxPinnedPosts, getSubscriptionTier } from '@/lib/services/subscriptionService';
 import { useReportBlock } from '@/hooks/useReportBlock';
 import { addReport, getRemovedPostIds } from '@/lib/services/reportQueueService';
 import { useCurrentUserId } from '@/hooks/useCurrentUserId';
+import { getCurrentUserIdOrFallback } from '@/lib/api/users';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Clipboard from 'expo-clipboard';
 import { getSpaceInitials } from '@/lib/utils/spaceUtils';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -168,7 +168,7 @@ export default function SpaceDetailScreen() {
 
   const checkPendingRequest = useCallback(async () => {
     if (!space || !id) return;
-    const currentUserId = mockUsers[0].id;
+    const currentUserId = getCurrentUserIdOrFallback();
     const request = await getUserJoinRequest(id, currentUserId);
     setHasPendingRequest(!!request);
   }, [space, id]);
@@ -184,10 +184,10 @@ export default function SpaceDetailScreen() {
       }
       const fetchedSpace = await getSpaceById(id);
       if (fetchedSpace) {
-      const currentUserId = mockUsers[0].id;
+      const currentUserId = getCurrentUserIdOrFallback();
       // ALWAYS check ownerId first - this is the source of truth
       const isOwner = fetchedSpace.ownerId === currentUserId || fetchedSpace.ownerId === `user-${currentUserId}`;
-      const isJoined = mockUserSpaces.includes(fetchedSpace.id) || isOwner;
+      const isJoined = fetchedSpace.isJoined || isOwner;
       
       // Force owner role if user is owner, regardless of what's in fetchedSpace
       const finalMemberRole = isOwner ? 'owner' : (fetchedSpace.memberRole || (isJoined ? 'member' : undefined));
@@ -222,35 +222,39 @@ export default function SpaceDetailScreen() {
     setLoadingTab(true);
     try {
       switch (activeTab) {
-        case 'members':
+        case 'members': {
           const fetchedMembers = await getSpaceMembers(id);
           setMembers(fetchedMembers);
           break;
-        case 'events':
+        }
+        case 'events': {
           const fetchedEvents = await getSpaceEvents(id);
           setEvents(fetchedEvents);
           break;
+        }
         case 'feed': {
           const [postsResponse, removed] = await Promise.all([getSpacePosts(id, 1, 20), getRemovedPostIds()]);
           setPosts(postsResponse.data);
           setRemovedPostIds(removed);
           break;
         }
-        case 'requests':
-          const isOwner = space.ownerId === mockUsers[0].id || space.ownerId === `user-${mockUsers[0].id}`;
+        case 'requests': {
+          const isOwner = space.ownerId === getCurrentUserIdOrFallback() || space.ownerId === `user-${getCurrentUserIdOrFallback()}`;
           const isAdmin = space.memberRole === 'admin';
           if (isOwner || isAdmin) {
             const fetchedRequests = await getJoinRequests(id);
             setJoinRequests(fetchedRequests);
           }
           break;
-        case 'logs':
-          const canViewLogs = space.ownerId === mockUsers[0].id || space.ownerId === `user-${mockUsers[0].id}` || space.memberRole === 'admin';
+        }
+        case 'logs': {
+          const canViewLogs = space.ownerId === getCurrentUserIdOrFallback() || space.ownerId === `user-${getCurrentUserIdOrFallback()}` || space.memberRole === 'admin';
           if (canViewLogs) {
             const logs = await getModerationLogs(id);
             setModerationLogs(logs);
           }
           break;
+        }
       }
     } catch (error) {
       console.error('Error loading tab data:', error);
@@ -275,7 +279,7 @@ export default function SpaceDetailScreen() {
           // Count currently joined spaces
           const { getSpaces } = await import('@/lib/api/spaces');
           const allSpaces = await getSpaces();
-          const joinedCount = allSpaces.filter(s => s.isJoined || mockUserSpaces.includes(s.id)).length;
+          const joinedCount = allSpaces.filter(s => s.isJoined || s.isJoined).length;
           
           if (joinedCount >= maxSpaces) {
             Alert.alert(
@@ -350,7 +354,7 @@ export default function SpaceDetailScreen() {
   const handleMemberAction = useCallback((member: SpaceMember, action: string) => {
     if (!id || !space) return;
     
-    const isOwner = space.ownerId === mockUsers[0].id || space.ownerId === `user-${mockUsers[0].id}`;
+    const isOwner = space.ownerId === getCurrentUserIdOrFallback() || space.ownerId === `user-${getCurrentUserIdOrFallback()}`;
     const isAdmin = space.memberRole === 'admin';
     const isModerator = space.memberRole === 'moderator';
     const canManageMembers = isOwner || isAdmin || isModerator;
@@ -550,7 +554,7 @@ export default function SpaceDetailScreen() {
       );
     }
 
-    const isOwner = space?.ownerId === mockUsers[0].id || space?.ownerId === `user-${mockUsers[0].id}`;
+    const isOwner = space?.ownerId === getCurrentUserIdOrFallback() || space?.ownerId === `user-${getCurrentUserIdOrFallback()}`;
     const isAdmin = space?.memberRole === 'admin';
     const isModerator = space?.memberRole === 'moderator';
     const canModerateContent = isOwner || isAdmin || isModerator;
@@ -606,7 +610,7 @@ export default function SpaceDetailScreen() {
                       if (!isPinned && pinnedPosts.size >= maxPinned) {
                         Alert.alert(
                           'Pin Limit Reached',
-                          `You can only pin ${maxPinned} post${maxPinned > 1 ? 's' : ''} with your current plan. Upgrade to Pro+ to pin up to 5 posts.`,
+                          `You can only pin ${maxPinned} post${maxPinned > 1 ? 's' : ''} with your current plan. Upgrade to Premium to pin up to 5 posts.`,
                           [{ text: 'OK' }]
                         );
                         return;
@@ -752,9 +756,7 @@ export default function SpaceDetailScreen() {
   // Filter and search members - must be at component level
   const filteredMembers = useMemo(() => {
     if (!members.length) return [];
-    
-    let filtered = [...members];
-    
+    const filtered = [...members];
     return filtered;
   }, [members]);
 
@@ -789,7 +791,7 @@ export default function SpaceDetailScreen() {
       );
     }
 
-    const isOwner = space?.ownerId === mockUsers[0].id || space?.ownerId === `user-${mockUsers[0].id}`;
+    const isOwner = space?.ownerId === getCurrentUserIdOrFallback() || space?.ownerId === `user-${getCurrentUserIdOrFallback()}`;
     const isAdmin = space?.memberRole === 'admin';
     const isModerator = space?.memberRole === 'moderator';
     const canManageMembers = isOwner || isAdmin || isModerator;
@@ -897,7 +899,7 @@ export default function SpaceDetailScreen() {
                     style={styles.memberActionButton}
                     onPress={() => {
                       haptics.light();
-                      const isOwnerCur = space?.ownerId === mockUsers[0].id || space?.ownerId === `user-${mockUsers[0].id}`;
+                      const isOwnerCur = space?.ownerId === getCurrentUserIdOrFallback() || space?.ownerId === `user-${getCurrentUserIdOrFallback()}`;
                       const isAdminCur = space?.memberRole === 'admin';
                       const isModeratorCur = space?.memberRole === 'moderator';
                       const options: any[] = [];
@@ -944,7 +946,7 @@ export default function SpaceDetailScreen() {
                     style={styles.memberActionButton}
                     onPress={() => {
                       haptics.light();
-                      const isOwnerCur = space?.ownerId === mockUsers[0].id || space?.ownerId === `user-${mockUsers[0].id}`;
+                      const isOwnerCur = space?.ownerId === getCurrentUserIdOrFallback() || space?.ownerId === `user-${getCurrentUserIdOrFallback()}`;
                       const isAdminCur = space?.memberRole === 'admin';
                       const isModeratorCur = space?.memberRole === 'moderator';
                       const options: any[] = [];
@@ -1053,7 +1055,7 @@ export default function SpaceDetailScreen() {
                       style={styles.memberActionButton}
                       onPress={() => {
                         haptics.light();
-                        const isOwnerCur = space?.ownerId === mockUsers[0].id || space?.ownerId === `user-${mockUsers[0].id}`;
+                        const isOwnerCur = space?.ownerId === getCurrentUserIdOrFallback() || space?.ownerId === `user-${getCurrentUserIdOrFallback()}`;
                         const isAdminCur = space?.memberRole === 'admin';
                         const isModeratorCur = space?.memberRole === 'moderator';
                         const options: any[] = [];
@@ -1106,7 +1108,7 @@ export default function SpaceDetailScreen() {
   };
 
   const renderEventsTab = () => {
-    const isOwner = space?.ownerId === mockUsers[0].id || space?.ownerId === `user-${mockUsers[0].id}`;
+    const isOwner = space?.ownerId === getCurrentUserIdOrFallback() || space?.ownerId === `user-${getCurrentUserIdOrFallback()}`;
     const isAdmin = space?.memberRole === 'admin';
     const canCreateEvents = isOwner || isAdmin;
 
@@ -1160,7 +1162,7 @@ export default function SpaceDetailScreen() {
             .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
             .map((event) => {
           const startDate = new Date(event.startTime);
-          const isJoined = joinedEventIds.has(event.id) || (event.attendees && event.attendees.includes(mockUsers[0].id));
+          const isJoined = joinedEventIds.has(event.id) || (event.attendees && event.attendees.includes(getCurrentUserIdOrFallback()));
           return (
             <TouchableOpacity
               key={event.id}
@@ -1244,7 +1246,7 @@ export default function SpaceDetailScreen() {
 
   const renderResourcesTab = () => {
     if (!space) return null;
-    const isOwner = space?.ownerId === mockUsers[0].id || space?.ownerId === `user-${mockUsers[0].id}`;
+    const isOwner = space?.ownerId === getCurrentUserIdOrFallback() || space?.ownerId === `user-${getCurrentUserIdOrFallback()}`;
     const isAdmin = space?.memberRole === 'admin';
     const canCreateResources = isOwner || isAdmin;
 
@@ -1446,7 +1448,7 @@ export default function SpaceDetailScreen() {
       );
     }
 
-    const isOwner = space?.ownerId === mockUsers[0].id || space?.ownerId === `user-${mockUsers[0].id}`;
+    const isOwner = space?.ownerId === getCurrentUserIdOrFallback() || space?.ownerId === `user-${getCurrentUserIdOrFallback()}`;
     const isAdmin = space?.memberRole === 'admin';
     if (!isOwner && !isAdmin) {
       return (
@@ -1580,7 +1582,7 @@ export default function SpaceDetailScreen() {
   };
 
   const renderAnalyticsTab = () => {
-    const isOwner = space?.ownerId === mockUsers[0].id || space?.ownerId === `user-${mockUsers[0].id}`;
+    const isOwner = space?.ownerId === getCurrentUserIdOrFallback() || space?.ownerId === `user-${getCurrentUserIdOrFallback()}`;
     const isAdmin = space?.memberRole === 'admin';
     
     if (!isOwner && !isAdmin) {
@@ -1600,16 +1602,16 @@ export default function SpaceDetailScreen() {
       return (
         <View style={[styles.emptyTab, { backgroundColor: colors.spaceBackground }]}>
           <IconSymbol name="lock-closed-outline" size={48} color={colors.secondary} />
-          <Text style={[styles.emptyTabText, { color: colors.text }]}>Pro+ Required</Text>
+          <Text style={[styles.emptyTabText, { color: colors.text }]}>Premium Required</Text>
           <Text style={[styles.emptyTabSubtext, { color: colors.secondary }]}>
-            Space analytics is available for Pro+ subscribers. Upgrade to unlock detailed insights about your space.
+            Space analytics is available for Premium subscribers. Upgrade to unlock detailed insights about your space.
           </Text>
           <TouchableOpacity
             style={[styles.upgradeButton, { backgroundColor: colors.primary }]}
             onPress={() => router.push('/settings/subscription-info')}
             activeOpacity={0.7}
           >
-            <Text style={styles.upgradeButtonText}>Upgrade to Pro+</Text>
+            <Text style={styles.upgradeButtonText}>Upgrade to Premium</Text>
           </TouchableOpacity>
         </View>
       );
@@ -1835,7 +1837,7 @@ export default function SpaceDetailScreen() {
           <View style={[styles.errorIconWrap, { backgroundColor: (colors.error || '#EF4444') + '18' }]}>
             <Ionicons name="alert-circle-outline" size={48} color={colors.error || '#EF4444'} />
           </View>
-          <Text style={[styles.errorTitle, { color: colors.text }]}>Couldn't load space</Text>
+          <Text style={[styles.errorTitle, { color: colors.text }]}>Couldn&apos;t load space</Text>
           <Text style={[styles.errorMessage, { color: colors.secondary }]}>{loadError}</Text>
           <View style={styles.errorActions}>
             <TouchableOpacity
@@ -1974,8 +1976,9 @@ export default function SpaceDetailScreen() {
 
   // Space overview
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView
+    <ErrorBoundary>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -2001,7 +2004,7 @@ export default function SpaceDetailScreen() {
           </TouchableOpacity>
           <Text style={[styles.navTitle, { color: colors.text }]}>Space</Text>
           {(() => {
-            const isOwner = space?.ownerId === mockUsers[0].id || space?.ownerId === `user-${mockUsers[0].id}`;
+            const isOwner = space?.ownerId === getCurrentUserIdOrFallback() || space?.ownerId === `user-${getCurrentUserIdOrFallback()}`;
             const isAdmin = space?.memberRole === 'admin';
             const canEdit = isOwner || isAdmin;
             
@@ -2084,8 +2087,8 @@ export default function SpaceDetailScreen() {
                   )}
                   {(() => {
                     const isOwner =
-                      space.ownerId === mockUsers[0].id ||
-                      space.ownerId === `user-${mockUsers[0].id}`;
+                      space.ownerId === getCurrentUserIdOrFallback() ||
+                      space.ownerId === `user-${getCurrentUserIdOrFallback()}`;
                     const isAdmin = space.memberRole === 'admin';
                     const showBadge = isOwner || isAdmin;
                     const role = isOwner ? 'owner' : 'admin';
@@ -2181,7 +2184,7 @@ export default function SpaceDetailScreen() {
                 </TouchableOpacity>
               )}
               {(() => {
-                const isOwner = space.ownerId === mockUsers[0].id || space.ownerId === `user-${mockUsers[0].id}`;
+                const isOwner = space.ownerId === getCurrentUserIdOrFallback() || space.ownerId === `user-${getCurrentUserIdOrFallback()}`;
                 const isAdmin = space.memberRole === 'admin';
                 const canManage = isOwner || isAdmin;
                 
@@ -2343,7 +2346,7 @@ export default function SpaceDetailScreen() {
                   'resources',
                   'rules',
                   ...(space &&
-                  ((space.ownerId === mockUsers[0].id || space.ownerId === `user-${mockUsers[0].id}`) ||
+                  ((space.ownerId === getCurrentUserIdOrFallback() || space.ownerId === `user-${getCurrentUserIdOrFallback()}`) ||
                     space.memberRole === 'admin')
                     ? (['analytics', 'requests', 'logs'] as const)
                     : ([] as const)),
@@ -2423,7 +2426,7 @@ export default function SpaceDetailScreen() {
               </View>
               <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                 {(() => {
-                  const isOwner = space.ownerId === mockUsers[0].id || space.ownerId === `user-${mockUsers[0].id}`;
+                  const isOwner = space.ownerId === getCurrentUserIdOrFallback() || space.ownerId === `user-${getCurrentUserIdOrFallback()}`;
                   const isAdmin = space.memberRole === 'admin';
                   if (isOwner || isAdmin) {
                     return (
@@ -2936,7 +2939,7 @@ export default function SpaceDetailScreen() {
                     </View>
                   </View>
                   {(() => {
-                    const isJoined = joinedEventIds.has(selectedEvent.id) || (selectedEvent.attendees && selectedEvent.attendees.includes(mockUsers[0].id));
+                    const isJoined = joinedEventIds.has(selectedEvent.id) || (selectedEvent.attendees && selectedEvent.attendees.includes(getCurrentUserIdOrFallback()));
                     return (
                       <TouchableOpacity
                         style={[styles.eventDetailJoinButton, { backgroundColor: isJoined ? colors.spaceBackground : colors.primary, borderColor: colors.cardBorder }]}
@@ -2950,7 +2953,7 @@ export default function SpaceDetailScreen() {
                             await joinSpaceEvent(id, selectedEvent.id);
                             setJoinedEventIds(prev => new Set(prev).add(selectedEvent.id));
                             setEvents(prev => prev.map(e => e.id === selectedEvent.id
-                              ? { ...e, attendees: [...(e.attendees || []), mockUsers[0].id] }
+                              ? { ...e, attendees: [...(e.attendees || []), getCurrentUserIdOrFallback()] }
                               : e));
                             haptics.success();
                             showToast("You're in! See you there.", 'success');
@@ -3243,8 +3246,9 @@ export default function SpaceDetailScreen() {
         </TouchableOpacity>
       )}
       </SafeAreaView>
-    );
-  }
+    </ErrorBoundary>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {

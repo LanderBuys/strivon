@@ -90,13 +90,13 @@ export default function ContentIdeasScreen() {
             Content Ideas Dashboard
           </ThemedText>
           <ThemedText style={[styles.lockedMessage, { color: colors.secondary }]}>
-            Get trending topics, best times to post, and content suggestions. Available for Pro+ subscribers.
+            Get trending topics, best times to post, and content suggestions. Available for Premium subscribers.
           </ThemedText>
           <TouchableOpacity
             style={[styles.upgradeButton, { backgroundColor: colors.primary }]}
             onPress={() => router.push('/settings/subscription-info')}
           >
-            <Text style={styles.upgradeButtonText}>Upgrade to Pro+</Text>
+            <Text style={styles.upgradeButtonText}>Upgrade to Premium</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

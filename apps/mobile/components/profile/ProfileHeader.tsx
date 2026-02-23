@@ -336,7 +336,7 @@ export function ProfileHeader({ user, activeStatus = false, activeStreak = 0, sh
           </View>
         )}
 
-        {/* Pro+ Custom Creator Label */}
+        {/* Premium: Custom Creator Label */}
         {subscriptionTier === 'pro-plus' && user?.label && (
           <View style={[styles.creatorLabelContainer, { backgroundColor: pageAccentColor + '15' }]}>
             <Ionicons name="star" size={14} color={pageAccentColor} />

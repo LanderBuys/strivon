@@ -71,7 +71,9 @@ export function VoiceMessageRecorder({ onSend, onCancel }: VoiceMessageRecorderP
         // Delete the recorded file (Recording doesn't expose deleteAsync)
         try {
           await FileSystem.deleteAsync(uri, { idempotent: true });
-        } catch {}
+        } catch {
+          // ignore delete errors
+        }
         recordingRef.current = null;
         setIsRecording(false);
         setDuration(0);

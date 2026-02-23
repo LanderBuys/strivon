@@ -19,6 +19,7 @@ import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { canUseAdvancedAnalytics, getSubscriptionTier } from '@/lib/services/subscriptionService';
 import { useFocusEffect } from '@react-navigation/native';
 import { getCurrentUserIdOrFallback } from '@/lib/api/users';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -82,45 +83,49 @@ export default function AnalyticsScreen() {
 
   if (!hasAccess) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <ThemedText type="title" style={styles.title}>Analytics</ThemedText>
-          <View style={styles.placeholder} />
-        </View>
-        <View style={styles.lockedContainer}>
-          <Ionicons name="lock-closed" size={64} color={colors.secondary} />
-          <ThemedText type="title" style={[styles.lockedTitle, { color: colors.text }]}>
-            Advanced Analytics
-          </ThemedText>
-          <ThemedText style={[styles.lockedMessage, { color: colors.secondary }]}>
-            Upgrade to Pro or Pro+ to access advanced analytics, post performance insights, and audience data.
-          </ThemedText>
-          <TouchableOpacity
-            style={[styles.upgradeButton, { backgroundColor: colors.primary }]}
-            onPress={() => router.push('/settings/subscription-info')}
-          >
-            <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      <ErrorBoundary>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+          <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <IconSymbol name="chevron-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <ThemedText type="title" style={styles.title}>Analytics</ThemedText>
+            <View style={styles.placeholder} />
+          </View>
+          <View style={styles.lockedContainer}>
+            <Ionicons name="lock-closed" size={64} color={colors.secondary} />
+            <ThemedText type="title" style={[styles.lockedTitle, { color: colors.text }]}>
+              Advanced Analytics
+            </ThemedText>
+            <ThemedText style={[styles.lockedMessage, { color: colors.secondary }]}>
+              Upgrade to Pro or Premium to access advanced analytics, post performance insights, and audience data.
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.upgradeButton, { backgroundColor: colors.primary }]}
+              onPress={() => router.push('/settings/subscription-info')}
+            >
+              <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </ErrorBoundary>
     );
   }
 
   if (loading || !analytics) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <ThemedText type="title" style={styles.title}>Analytics</ThemedText>
-          <View style={styles.placeholder} />
-        </View>
-        <LoadingOverlay visible={true} message="Loading analytics..." fullScreen={false} />
-      </SafeAreaView>
+      <ErrorBoundary>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+          <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <IconSymbol name="chevron-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <ThemedText type="title" style={styles.title}>Analytics</ThemedText>
+            <View style={styles.placeholder} />
+          </View>
+          <LoadingOverlay visible={true} message="Loading analytics..." fullScreen={false} />
+        </SafeAreaView>
+      </ErrorBoundary>
     );
   }
 
@@ -132,14 +137,15 @@ export default function AnalyticsScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <ThemedText type="title" style={styles.title}>Analytics</ThemedText>
-        <View style={styles.placeholder} />
-      </View>
+    <ErrorBoundary>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <IconSymbol name="chevron-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <ThemedText type="title" style={styles.title}>Analytics</ThemedText>
+          <View style={styles.placeholder} />
+        </View>
 
       {/* Period Selector */}
       <View style={[styles.periodContainer, { borderBottomColor: colors.divider }]}>
@@ -669,6 +675,7 @@ export default function AnalyticsScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
+    </ErrorBoundary>
   );
 }
 

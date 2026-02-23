@@ -11,6 +11,7 @@ import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { searchAll } from '@/lib/api/search';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 type ResultTabType = 'all' | 'posts' | 'users' | 'spaces';
 
@@ -314,24 +315,27 @@ export default function SearchResultsScreen() {
 
   if (showLoading && !refreshing) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.header, { borderBottomColor: colors.divider, backgroundColor: colors.surface }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>{query || 'Search'}</Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.secondary }]}>Searching...</Text>
-        </View>
-      </SafeAreaView>
+      <ErrorBoundary>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+          <View style={[styles.header, { borderBottomColor: colors.divider, backgroundColor: colors.surface }]}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>{query || 'Search'}</Text>
+            <View style={{ width: 40 }} />
+          </View>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.secondary }]}>Searching...</Text>
+          </View>
+        </SafeAreaView>
+      </ErrorBoundary>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <ErrorBoundary>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { 
         borderBottomColor: colors.divider, 
         backgroundColor: colors.surface,
@@ -405,6 +409,7 @@ export default function SearchResultsScreen() {
         />
       )}
     </SafeAreaView>
+    </ErrorBoundary>
   );
 }
 

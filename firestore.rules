@@ -5,10 +5,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users: anyone signed-in can read; only own doc writable
+    // Helper: true if current user is in config/admins emails
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/config/admins)
+        && request.auth.token.email in get(/databases/$(database)/documents/config/admins).data.emails;
+    }
+
+    // Users: anyone signed-in can read; own doc writable; admins can update (e.g. banned, status frozen)
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update, delete: if request.auth != null
+        && (request.auth.uid == userId || isAdmin());
     }
 
     // Follows: userId is the follower (current user)
@@ -19,13 +28,14 @@ service cloud.firestore {
       allow update: if false;
     }
 
-    // Posts: read all; create with authorId == auth.uid; no random deletes
+    // Posts: read all; create with authorId == auth.uid (or admin). Block banned users.
     match /posts/{postId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
-        && request.resource.data.authorId == request.auth.uid;
+        && (request.resource.data.authorId == request.auth.uid || isAdmin())
+        && !(exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.banned == true);
       allow update, delete: if request.auth != null
-        && resource.data.authorId == request.auth.uid;
+        && (resource.data.authorId == request.auth.uid || isAdmin());
     }
 
     // Post likes: doc id = postId_userId
@@ -44,17 +54,45 @@ service cloud.firestore {
       allow update: if false;
     }
 
-    // Reports: any signed-in user can create; read/update for moderation (all auth for now)
-    match /reports/{reportId} {
+    // Config: admins list (emails). Create config/admins with { emails: ["you@example.com"] } in Firebase Console. Read by any auth user.
+    match /config/{docId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null
-        && request.resource.data.reporterId == request.auth.uid;
-      allow update, delete: if request.auth != null;
+      allow write: if false;
     }
 
-    // Moderation (e.g. removed post IDs in a single doc)
+    // Reports: any signed-in user can create; only admins can read/update/delete
+    match /reports/{reportId} {
+      allow read, update, delete: if request.auth != null && isAdmin();
+      allow create: if request.auth != null
+        && request.resource.data.reporterId == request.auth.uid;
+    }
+
+    // Moderation: only admins can read or write (e.g. removed post IDs)
     match /moderation/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null && isAdmin();
+    }
+
+    // Media: owner can create (on upload) and read own; admins can read/update (approve/reject). Block banned users.
+    match /media/{mediaId} {
+      allow read: if request.auth != null
+        && (resource.data.ownerUid == request.auth.uid || isAdmin());
+      allow create: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid
+        && !(exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.banned == true);
+      allow update, delete: if request.auth != null && isAdmin();
+    }
+
+    // Moderation queue (optional): admins only; Cloud Functions write via Admin SDK
+    match /moderationQueue/{queueId} {
+      allow read, write: if request.auth != null && isAdmin();
+    }
+
+    // Upload rate limit: user can read/write own uploadCounts doc (docId = uid_date, doc.uid == auth.uid)
+    match /uploadCounts/{docId} {
+      allow read: if request.auth != null && resource != null && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 
     // Spaces: read all; create/update/delete when owner
@@ -83,6 +121,47 @@ service cloud.firestore {
         && request.resource.data.authorId == request.auth.uid;
       allow update, delete: if request.auth != null
         && resource.data.authorId == request.auth.uid;
+    }
+
+    // Thread messages (post comments): read if auth; create with authorId == auth.uid; update/delete own
+    match /threadMessages/{messageId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.authorId == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && resource.data.authorId == request.auth.uid;
+    }
+
+    // Conversations (chat): participants can read; create when current user in members
+    match /conversations/{conversationId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null;
+    }
+
+    // Messages (chat messages): read/write when auth
+    match /messages/{messageId} {
+      allow read, create: if request.auth != null;
+      allow update, delete: if request.auth != null;
+    }
+
+    // Space join requests (optional): for private spaces
+    match /spaceJoinRequests/{requestId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null;
+    }
+
+    // Waitlist: anyone can add email (no auth); only admins can read/update/delete
+    match /waitlist/{entryId} {
+      allow create: if (request.resource.data.keys().hasOnly(['email', 'createdAt'])
+        || request.resource.data.keys().hasOnly(['email', 'name', 'createdAt']))
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 256
+        && (!('name' in request.resource.data) || (request.resource.data.name is string && request.resource.data.name.size() <= 200))
+        && request.resource.data.createdAt is timestamp;
+      allow read, list, update, delete: if request.auth != null && isAdmin();
     }
   }
 }

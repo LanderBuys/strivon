@@ -31,6 +31,7 @@ import { formatRelativeTime } from '@/lib/utils/time';
 import { EmptyState } from '@/components/EmptyState';
 import { Toast } from '@/components/ui/Toast';
 import { useToast } from '@/hooks/useToast';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 /** Resolve the route to open when tapping a notification (link or from metadata). */
 function getNotificationDestination(notification: Notification): string | null {
@@ -484,28 +485,31 @@ export default function NotificationsScreen() {
 
   if (loading) {
     return (
+      <ErrorBoundary>
+        <SafeAreaView
+          style={[styles.container, { backgroundColor: colors.background }]}
+          edges={['top']}
+        >
+          {renderHeader()}
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.secondary }]}>
+              Loading notifications...
+            </Text>
+          </View>
+        </SafeAreaView>
+      </ErrorBoundary>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top']}
       >
         {renderHeader()}
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.secondary }]}>
-            Loading notifications...
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
-    >
-      {renderHeader()}
-      <FlatList
+        <FlatList
         data={filteredNotifications}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -651,6 +655,7 @@ export default function NotificationsScreen() {
         onHide={hideToast}
       />
     </SafeAreaView>
+    </ErrorBoundary>
   );
 }
 

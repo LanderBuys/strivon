@@ -20,9 +20,12 @@ export interface SubscriptionFeatures {
   storyExpirationHours: number; // 24/48/168
   maxConversations: number; // 5 for free, -1 for unlimited
   maxGroupChatMembers: number; // 0 for free, 50 for Pro, 500 for Pro+
-  maxDrafts: number; // 5 for free, -1 for unlimited
+  maxDrafts: number; // 1 for free, -1 for unlimited
   canUseAdvancedSearch: boolean;
 }
+
+/** Display name for the top tier (matches web pricing: "Premium") */
+export const PREMIUM_TIER_DISPLAY_NAME = 'Premium';
 
 /**
  * Get current subscription tier
@@ -107,7 +110,7 @@ export async function getSubscriptionFeatures(): Promise<SubscriptionFeatures> {
         storyExpirationHours: 24, // 1 day
         maxConversations: 5,
         maxGroupChatMembers: 0, // No group chats
-        maxDrafts: 5,
+        maxDrafts: 1,
         canUseAdvancedSearch: false,
       };
   }

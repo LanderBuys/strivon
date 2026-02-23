@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  ImageBackground,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -17,6 +18,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { sanitizeEmail } from '@/lib/utils/sanitize';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+const BG_IMAGE = require('@/assets/strivonbackgroundimage.png');
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -30,14 +34,18 @@ export default function ForgotPasswordScreen() {
 
   if (!isFirebaseEnabled) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.centered}>
-          <Text style={[styles.errorText, { color: colors.secondary }]}>Password reset is not configured.</Text>
-          <TouchableOpacity style={[styles.backLink, { marginTop: Spacing.lg }]} onPress={() => router.back()}>
-            <Text style={{ color: colors.primary }}>Go back</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      <ErrorBoundary>
+        <ImageBackground source={BG_IMAGE} style={styles.bgImage} resizeMode="cover">
+          <SafeAreaView style={styles.container} edges={['top']}>
+            <View style={styles.centered}>
+              <Text style={[styles.errorText, { color: colors.secondary }]}>Password reset is not configured.</Text>
+              <TouchableOpacity style={[styles.backLink, { marginTop: Spacing.lg }]} onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/sign-in'); }}>
+                <Text style={{ color: colors.primary }}>Go back</Text>
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </ImageBackground>
+      </ErrorBoundary>
     );
   }
 
@@ -60,61 +68,68 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboard}>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.text }]}>Forgot password?</Text>
-          <Text style={[styles.subtitle, { color: colors.secondary }]}>
-            Enter your email and we'll send you a link to reset your password.
-          </Text>
-
-          {sent ? (
-            <View style={[styles.successBox, { backgroundColor: colors.success + '20', borderColor: colors.success }]}>
-              <Text style={[styles.successText, { color: colors.success }]}>
-                Check your email for a reset link. You can close this screen.
+    <ErrorBoundary>
+      <ImageBackground source={BG_IMAGE} style={styles.bgImage} resizeMode="cover">
+        <SafeAreaView style={styles.container} edges={['top']}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboard}>
+            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <TouchableOpacity onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/sign-in'); }} hitSlop={12} style={styles.backBtn}>
+                <Ionicons name="arrow-back" size={24} color={colors.text} />
+              </TouchableOpacity>
+              <Text style={[styles.title, { color: colors.text }]}>Forgot password?</Text>
+              <Text style={[styles.subtitle, { color: colors.secondary }]}>
+                Enter your email and we&apos;ll send you a link to reset your password.
               </Text>
-              <TouchableOpacity style={styles.linkButton} onPress={() => router.back()}>
-                <Text style={{ color: colors.primary }}>Back to sign in</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.form}>
-              {error ? (
-                <View style={[styles.errorBox, { backgroundColor: colors.error + '20', borderColor: colors.error }]}>
-                  <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+
+              <View style={[styles.formCard, { backgroundColor: colors.background }]}>
+              {sent ? (
+                <View style={[styles.successBox, { backgroundColor: colors.success + '20', borderColor: colors.success }]}>
+                  <Text style={[styles.successText, { color: colors.success }]}>
+                    Check your email for a reset link. You can close this screen.
+                  </Text>
+                  <TouchableOpacity style={styles.linkButton} onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/sign-in'); }}>
+                    <Text style={{ color: colors.primary }}>Back to sign in</Text>
+                  </TouchableOpacity>
                 </View>
-              ) : null}
-              <Text style={[styles.label, { color: colors.text }]}>Email</Text>
-              <TextInput
-                style={[styles.input, { color: colors.text, backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
-                placeholder="you@example.com"
-                placeholderTextColor={colors.secondary}
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoComplete="email"
-                editable={!loading}
-              />
-              <TouchableOpacity
-                style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-                onPress={handleSubmit}
-                disabled={loading}
-              >
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Send reset link</Text>}
-              </TouchableOpacity>
-            </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+              ) : (
+                <View style={styles.form}>
+                  {error ? (
+                    <View style={[styles.errorBox, { backgroundColor: colors.error + '20', borderColor: colors.error }]}>
+                      <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+                    </View>
+                  ) : null}
+                  <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+                  <TextInput
+                    style={[styles.input, { color: colors.text, backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
+                    placeholder="you@example.com"
+                    placeholderTextColor={colors.secondary}
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    autoComplete="email"
+                    editable={!loading}
+                  />
+                  <TouchableOpacity
+                    style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+                    onPress={handleSubmit}
+                    disabled={loading}
+                  >
+                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Send reset link</Text>}
+                  </TouchableOpacity>
+                </View>
+              )}
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </ImageBackground>
+    </ErrorBoundary>
   );
 }
 
 const styles = StyleSheet.create({
+  bgImage: { flex: 1, width: '100%', height: '100%' },
   container: { flex: 1 },
   keyboard: { flex: 1 },
   scrollContent: { flexGrow: 1, padding: Spacing.lg, paddingBottom: Spacing.xxl },
@@ -122,7 +137,15 @@ const styles = StyleSheet.create({
   backBtn: { marginBottom: Spacing.lg },
   title: { fontSize: Typography.xxl, fontWeight: '700', marginBottom: Spacing.xs },
   subtitle: { fontSize: Typography.base, marginBottom: Spacing.xl },
-  form: { marginTop: Spacing.md },
+  formCard: {
+    marginTop: Spacing.lg,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.xxl,
+  },
+  form: { marginTop: 0 },
   label: { fontSize: Typography.sm, fontWeight: '600', marginBottom: Spacing.xs },
   input: {
     borderWidth: 1,

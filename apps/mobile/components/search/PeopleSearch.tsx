@@ -44,7 +44,7 @@ export function PeopleSearch({ initialQuery = '', showFilters = true }: PeopleSe
     setLoading(true);
     try {
       const results = await searchUsers(debouncedQuery);
-      let filtered = results;
+      const filtered = results;
 
       // Apply filters
       if (filter === 'verified') {

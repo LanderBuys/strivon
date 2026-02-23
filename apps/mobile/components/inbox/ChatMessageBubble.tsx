@@ -7,6 +7,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Spacing, Typography } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { FormattedMessageText } from './FormattedMessageText';
+import { sanitizeForDisplay } from '@/lib/utils/sanitize';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAX_MEDIA_WIDTH = SCREEN_WIDTH * 0.65;
@@ -47,10 +48,11 @@ export function ChatMessageBubble({
   onSharedPostPress,
   onSharedArticlePress,
 }: ChatMessageBubbleProps) {
-  // Normalize message content at component level to ensure it's always a string
+  // Normalize and sanitize message content for safe display
+  const rawContent = typeof message.content === 'string' ? message.content : String(message.content || '');
   const normalizedMessage = {
     ...message,
-    content: typeof message.content === 'string' ? message.content : String(message.content || '')
+    content: sanitizeForDisplay(rawContent),
   };
   
   const lastTap = useRef<number>(0);

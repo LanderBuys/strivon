@@ -29,7 +29,11 @@ function ErrorFallback({
   const router = useRouter();
 
   const handleGoHome = () => {
-    onGoHome?.() ?? router.replace('/(tabs)');
+    if (onGoHome) {
+      onGoHome();
+    } else {
+      router.replace('/(tabs)');
+    }
   };
 
   return (

@@ -432,7 +432,7 @@ export function ProfileCustomizationModal({ visible, onClose, onCustomizationCha
             </View>
             <Text style={[styles.premiumTitle, { color: colors.text }]}>Premium Required</Text>
             <Text style={[styles.premiumDescription, { color: colors.secondary }]}>
-              Profile customization is available for Pro and Pro+ members. Upgrade to unlock custom page colors, accent themes, and post card styling.
+              Profile customization is available for Pro and Premium members. Upgrade to unlock custom page colors, accent themes, and post card styling.
             </Text>
             <TouchableOpacity
               style={[styles.upgradeButton, { backgroundColor: colors.primary }]}

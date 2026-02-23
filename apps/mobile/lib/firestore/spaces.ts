@@ -39,6 +39,7 @@ function toSpace(id: string, d: Record<string, unknown>, isJoined?: boolean): Sp
     rules: d.rules as string[] | undefined,
     guidelines: d.guidelines as string | undefined,
     tags: d.tags as string[] | undefined,
+    pinnedResources: d.pinnedResources as Space['pinnedResources'] | undefined,
     createdAt: (d.createdAt as string) || new Date().toISOString(),
     ownerId: d.ownerId as string | undefined,
     isPrivate: !!d.isPrivate,
@@ -159,6 +160,65 @@ export async function leaveSpaceFirestore(spaceId: string, userId: string): Prom
   batch.delete(ref);
   batch.update(spaceRef, { memberCount: increment(-1) });
   await batch.commit();
+}
+
+export async function updateSpaceFirestore(
+  spaceId: string,
+  ownerId: string,
+  uid: string | undefined,
+  data: Partial<{
+    name: string;
+    description: string;
+    category: string;
+    color: string;
+    iconImage: string;
+    banner: string;
+    isPrivate: boolean;
+    requiresApproval: boolean;
+    rules: string[];
+    guidelines: string;
+    tags: string[];
+    pinnedResources: Space['pinnedResources'];
+    channels: Space['channels'];
+  }>
+): Promise<Space | null> {
+  const db = getFirestoreDb();
+  if (!db) return null;
+  const ref = doc(db, SPACES, spaceId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  const existing = snap.data() as Record<string, unknown>;
+  if ((existing.ownerId as string) !== ownerId) return null;
+  const updates: Record<string, unknown> = {};
+  if (data.name !== undefined) updates.name = data.name.trim();
+  if (data.description !== undefined) updates.description = data.description.trim();
+  if (data.category !== undefined) updates.category = data.category;
+  if (data.color !== undefined) updates.color = data.color;
+  if (data.iconImage !== undefined) updates.iconImage = data.iconImage;
+  if (data.banner !== undefined) updates.banner = data.banner;
+  if (data.isPrivate !== undefined) updates.isPrivate = data.isPrivate;
+  if (data.requiresApproval !== undefined) updates.requiresApproval = data.requiresApproval;
+  if (data.rules !== undefined) updates.rules = data.rules;
+  if (data.guidelines !== undefined) updates.guidelines = data.guidelines;
+  if (data.tags !== undefined) updates.tags = data.tags;
+  if (data.pinnedResources !== undefined) updates.pinnedResources = data.pinnedResources;
+  if (data.channels !== undefined) updates.channels = data.channels;
+  if (Object.keys(updates).length === 0) {
+    let isJoined = false;
+    if (uid) {
+      const memberSnap = await getDoc(doc(db, SPACE_MEMBERS, `${spaceId}_${uid}`));
+      isJoined = memberSnap.exists();
+    }
+    return toSpace(spaceId, existing, isJoined);
+  }
+  await setDoc(ref, { ...existing, ...updates }, { merge: true });
+  const updatedSnap = await getDoc(ref);
+  let isJoined = false;
+  if (uid) {
+    const memberSnap = await getDoc(doc(db, SPACE_MEMBERS, `${spaceId}_${uid}`));
+    isJoined = memberSnap.exists();
+  }
+  return toSpace(spaceId, updatedSnap.data() as Record<string, unknown>, isJoined);
 }
 
 export async function getSpaceMembersFirestore(spaceId: string): Promise<SpaceMember[]> {

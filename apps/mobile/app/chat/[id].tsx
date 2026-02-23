@@ -24,9 +24,9 @@ import { CallScreen } from '@/components/inbox/CallScreen';
 import { VideoCallScreen } from '@/components/inbox/VideoCallScreen';
 import { Ionicons } from '@expo/vector-icons';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { getChatMessagesPaginated, sendChatMessage, deleteChatMessage, reactToChatMessage, forwardMessage, editChatMessage, pinChatMessage, extractMentions, voteOnPoll } from '@/lib/api/chat';
-import { mockConversations } from '@/lib/mocks/notifications';
-import { mockUsers } from '@/lib/mocks/users';
+import { getChatMessagesPaginated, sendChatMessage, deleteChatMessage, reactToChatMessage, forwardMessage, editChatMessage, pinChatMessage, extractMentions, voteOnPoll, getConversationById, getConversationsList } from '@/lib/api/chat';
+import { getUserById } from '@/lib/api/users';
+import { getCurrentUserIdOrFallback } from '@/lib/api/users';
 import { notificationService } from '@/lib/services/notificationService';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -78,6 +78,10 @@ export default function ChatScreen() {
   const [showCall, setShowCall] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [isIncomingCall, setIsIncomingCall] = useState(false);
+  const [conversation, setConversation] = useState<{ id: string; user: { id: string; name: string; handle: string; avatar?: string | null; label?: string }; isGroup?: boolean; groupName?: string; members?: Array<{ id: string; name: string; handle: string; avatar?: string | null }> } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; handle: string; avatar?: string | null; label?: string } | null>(null);
+  const [otherConversations, setOtherConversations] = useState<Array<{ id: string; user: { id: string; name: string } }>>([]);
+  const [conversationLoaded, setConversationLoaded] = useState(false);
   const [callMuted, setCallMuted] = useState(false);
   const [callSpeakerOn, setCallSpeakerOn] = useState(false);
   const [callVideoOn, setCallVideoOn] = useState(true);
@@ -108,13 +112,29 @@ export default function ChatScreen() {
   const messageIdParam = Array.isArray(params.messageId) ? params.messageId[0] : params.messageId;
   const isGlobalChat = id === 'gc-global';
 
-  // Get conversation user - check if it's a group chat by ID prefix
-  const conversation = mockConversations.find(c => c.id === id);
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      const [conv, user] = await Promise.all([getConversationById(id), getUserById(getCurrentUserIdOrFallback())]);
+      if (cancelled) return;
+      setConversation(conv ?? null);
+      setCurrentUser(user ? { id: user.id, name: user.name, handle: user.handle, avatar: user.avatar ?? null, label: user.label } : null);
+      setConversationLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    getConversationsList().then((list) => setOtherConversations(list.filter((c) => c.id !== id)));
+  }, [id]);
+
   const chatUser = conversation?.user;
   const isGroupChat = conversation?.isGroup || id?.startsWith('gc-') || false;
   const groupName = conversation?.groupName || 'Group Chat';
   const groupMembers = conversation?.members || [];
-  const currentUserId = mockUsers[0].id; // Current user is Alex Chen
+  const currentUserId = currentUser?.id ?? getCurrentUserIdOrFallback();
 
   const callCaller = useMemo(() => {
     if (isGroupChat) {
@@ -358,7 +378,7 @@ export default function ChatScreen() {
     
     const tempMessage: ThreadMessage = {
       id: `temp-${Date.now()}`,
-      author: mockUsers[0], // Current user
+      author: currentUser ? { id: currentUser.id, name: currentUser.name, handle: currentUser.handle, avatar: currentUser.avatar ?? null } : { id: currentUserId, name: 'You', handle: '@you', avatar: null },
       content: typeof messageContent === 'string' ? messageContent : String(messageContent || ''),
       createdAt: new Date().toISOString(),
       reactions: [],
@@ -388,14 +408,13 @@ export default function ChatScreen() {
       
       // Notify mentioned users (in-app + optional push)
       const mentionedHandles = newMessage.mentions || extractMentions(text);
-      const currentUser = mockUsers[0];
+      const authorForNotif = currentUser ? { id: currentUser.id, name: currentUser.name, handle: currentUser.handle, avatar: currentUser.avatar ?? null } : { id: currentUserId, name: 'You', handle: '@you', avatar: null };
       for (const handle of mentionedHandles) {
-        const mentionedUser = mockUsers.find(u => u.handle === handle || u.handle === `@${handle}`);
-        if (mentionedUser && mentionedUser.id !== currentUserId) {
+        if (newMessage.author.id !== currentUserId) {
           notificationService.createNotification({
             type: 'mention',
-            user: currentUser,
-            title: currentUser.name,
+            user: authorForNotif,
+            title: authorForNotif.name,
             body: 'mentioned you in a chat',
             read: false,
             link: `/chat/${id}`,
@@ -475,7 +494,7 @@ export default function ChatScreen() {
     setShowMediaGallery(true);
   }, [messages]);
 
-  if (loading) {
+  if (loading && messages.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.center, styles.loadingCenter]}>
@@ -486,8 +505,18 @@ export default function ChatScreen() {
     );
   }
 
-  // Allow group chats to proceed even if not in mockConversations
-  if (!chatUser && !isGroupChat) {
+  if (!conversationLoaded && id && !isGlobalChat) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.center, styles.loadingCenter]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.secondary }]}>Loading conversation...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (conversationLoaded && !conversation && !id?.startsWith('gc-')) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
@@ -758,8 +787,8 @@ export default function ChatScreen() {
                           if (msg.author.id !== currentUserId) {
                             notificationService.createNotification({
                               type: 'reaction',
-                              user: mockUsers[0],
-                              title: mockUsers[0].name,
+                              user: currentUser ? { id: currentUser.id, name: currentUser.name, handle: currentUser.handle, avatar: currentUser.avatar ?? null } : { id: currentUserId, name: 'You', handle: '@you', avatar: null },
+                              title: currentUser?.name ?? 'You',
                               body: `reacted to your message`,
                               read: false,
                               link: `/chat/${id}`,
@@ -823,8 +852,8 @@ export default function ChatScreen() {
                             if (targetMsg?.author.id !== currentUserId) {
                               notificationService.createNotification({
                                 type: 'reaction',
-                                user: mockUsers[0],
-                                title: mockUsers[0].name,
+                                user: currentUser ? { id: currentUser.id, name: currentUser.name, handle: currentUser.handle, avatar: currentUser.avatar ?? null } : { id: currentUserId, name: 'You', handle: '@you', avatar: null },
+                                title: currentUser?.name ?? 'You',
                                 body: 'reacted to your message',
                                 read: false,
                                 link: `/chat/${id}`,
@@ -893,8 +922,8 @@ export default function ChatScreen() {
         ListFooterComponent={
           isTyping ? (
             <TypingIndicator
-              avatar={mockUsers[0].avatar}
-              name={mockUsers[0].name}
+              avatar={currentUser?.avatar ?? undefined}
+              name={currentUser?.name ?? 'You'}
             />
           ) : null
         }
@@ -1032,11 +1061,10 @@ export default function ChatScreen() {
             'Forward Message',
             'Select a conversation to forward to:',
             [
-              ...mockConversations
-                .filter(c => c.id !== id)
+              ...otherConversations
                 .slice(0, 5)
                 .map(c => ({
-                  text: c.user.name,
+                    text: c.user?.name ?? c.id,
                   onPress: async () => {
                     try {
                       await forwardMessage(id!, msg.id, c.id);
@@ -1276,8 +1304,8 @@ export default function ChatScreen() {
                 if (targetMsg?.author.id !== currentUserId) {
                   notificationService.createNotification({
                     type: 'reaction',
-                    user: mockUsers[0],
-                    title: mockUsers[0].name,
+                    user: currentUser ? { id: currentUser.id, name: currentUser.name, handle: currentUser.handle, avatar: currentUser.avatar ?? null } : { id: currentUserId, name: 'You', handle: '@you', avatar: null },
+                    title: currentUser?.name ?? 'You',
                     body: 'reacted to your message',
                     read: false,
                     link: `/chat/${id}`,

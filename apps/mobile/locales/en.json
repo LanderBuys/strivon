@@ -1,0 +1,24 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "goBack": "Go back",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "signOut": "Sign out",
+    "forgotPassword": "Forgot password?",
+    "welcomeBack": "Welcome back to Strivon",
+    "createAccount": "Create account",
+    "joinStrivon": "Join Strivon"
+  },
+  "feed": {
+    "forYou": "For You",
+    "following": "Following",
+    "noPosts": "No posts yet"
+  }
+}

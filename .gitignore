@@ -13,3 +13,5 @@ npm-debug.*
 .env.*.local
 .env.production
 
+# Firebase service account key (do not commit)
+service-account.json

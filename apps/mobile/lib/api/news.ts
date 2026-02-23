@@ -1,6 +1,5 @@
 import { NewsArticle, NewsCategory, StockVote, NewsComment } from '@/types/news';
 import { mockNewsArticles } from '@/lib/mocks/news';
-import { mockUsers } from '@/lib/mocks/users';
 import { getCurrentUserIdOrFallback } from '@/lib/api/users';
 import { getFollowing } from './users';
 import { sendChatMessage, getConversationIdForUser } from './chat';
@@ -224,7 +223,7 @@ const mapNewsAPIArticle = (apiArticle: NewsAPIArticle, _filterCategory: NewsCate
 };
 
 // Cache for storing articles (in-memory, resets on app restart)
-let articleCache: Map<string, NewsArticle> = new Map();
+const articleCache: Map<string, NewsArticle> = new Map();
 
 export type NewsSortOption = 'newest' | 'popular' | 'relevance';
 
@@ -622,74 +621,22 @@ export interface ShareTarget {
 }
 
 export async function getShareTargets(): Promise<ShareTarget[]> {
-  await new Promise(resolve => setTimeout(resolve, 300));
-
-  // Fallback: all users except current (so list is never empty)
-  const fallbackTargets: ShareTarget[] = mockUsers
-    .filter((u: { id: string; name: string; avatar?: string }) => u && u.id && u.name && u.id !== getCurrentUserIdOrFallback())
-    .map((u: { id: string; name: string; avatar?: string }) => ({
-      id: u.id,
-      name: u.name,
-      type: 'user' as const,
-      avatar: u.avatar || undefined,
-      isFollowing: false,
-    }));
-
-  // Known following IDs for current user (matches users.ts mockFollowing['1']) so "People You Follow" is never empty
-  const defaultFollowingIds = ['2', '3', '4'];
-
+  await new Promise((resolve) => setTimeout(resolve, 300));
   try {
-    let followingUsers = await getFollowing(getCurrentUserIdOrFallback());
-    if (!followingUsers || followingUsers.length === 0) {
-      followingUsers = mockUsers
-        .filter((u: { id: string }) => defaultFollowingIds.includes(u.id))
-        .map((u: { id: string; name: string; avatar?: string }) => ({ id: u.id, name: u.name, avatar: u.avatar }));
-    }
-    const followingIds = new Set(followingUsers.filter(u => u && u.id).map(u => u.id));
-
-    const followingTargets: ShareTarget[] = followingUsers
-      .filter(user => user && user.id && user.name)
-      .map(user => ({
+    const followingUsers = await getFollowing(getCurrentUserIdOrFallback());
+    if (!followingUsers || followingUsers.length === 0) return [];
+    return followingUsers
+      .filter((user) => user && user.id && user.name)
+      .map((user) => ({
         id: user.id,
         name: user.name,
         type: 'user' as const,
-        avatar: (user as { avatar?: string }).avatar || undefined,
+        avatar: (user as { avatar?: string | null }).avatar ?? undefined,
         isFollowing: true,
       }));
-
-    const otherUsers: ShareTarget[] = mockUsers
-      .filter((u: { id: string; name: string; avatar?: string }) => u && u.id && u.name && u.id !== getCurrentUserIdOrFallback() && !followingIds.has(u.id))
-      .map((u: { id: string; name: string; avatar?: string }) => ({
-        id: u.id,
-        name: u.name,
-        type: 'user' as const,
-        avatar: u.avatar || undefined,
-        isFollowing: false,
-      }));
-
-    const result = [...followingTargets, ...otherUsers];
-    return result.length > 0 ? result : fallbackTargets;
   } catch (error) {
-    console.error('getShareTargets failed, using fallback:', error);
-    const followingFromMock: ShareTarget[] = mockUsers
-      .filter((u: { id: string; name: string; avatar?: string }) => u && u.id && u.name && defaultFollowingIds.includes(u.id))
-      .map((u: { id: string; name: string; avatar?: string }) => ({
-        id: u.id,
-        name: u.name,
-        type: 'user' as const,
-        avatar: u.avatar || undefined,
-        isFollowing: true,
-      }));
-    const otherFromMock: ShareTarget[] = mockUsers
-      .filter((u: { id: string; name: string; avatar?: string }) => u && u.id && u.name && u.id !== getCurrentUserIdOrFallback() && !defaultFollowingIds.includes(u.id))
-      .map((u: { id: string; name: string; avatar?: string }) => ({
-        id: u.id,
-        name: u.name,
-        type: 'user' as const,
-        avatar: u.avatar || undefined,
-        isFollowing: false,
-      }));
-    return [...followingFromMock, ...otherFromMock].length > 0 ? [...followingFromMock, ...otherFromMock] : fallbackTargets;
+    console.error('getShareTargets failed:', error);
+    return [];
   }
 }
 
@@ -719,7 +666,7 @@ export async function shareNewsArticle(
 
   let sentCount = 0;
   for (const targetId of targetIds) {
-    const conversationId = getConversationIdForUser(targetId);
+    const conversationId = await getConversationIdForUser(targetId);
     if (!conversationId) {
       console.warn(`No conversation found for user ${targetId}, skipping`);
       continue;

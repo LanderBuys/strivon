@@ -23,11 +23,9 @@ if (!fs.existsSync(assetsDir)) {
 const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
 const pngBuffer = Buffer.from(pngBase64, 'base64');
 
+// app.config.js expects a single asset: logoStrivon.png (icon, splash, adaptive icon, favicon)
 const files = [
-  { name: 'icon.png', desc: 'App icon' },
-  { name: 'splash.png', desc: 'Splash screen' },
-  { name: 'adaptive-icon.png', desc: 'Android adaptive icon' },
-  { name: 'favicon.png', desc: 'Web favicon' }
+  { name: 'logoStrivon.png', desc: 'App icon, splash, adaptive icon, favicon (1024×1024 recommended for production)' },
 ];
 
 console.log('\nCreating asset files...');

@@ -1,0 +1,6 @@
+# Maestro E2E tests. Install: curl -Ls "https://get.maestro.mobile.dev" | bash
+# Run: maestro test .maestro/
+# Requires app to be running on simulator/device (e.g. npx expo start, then press i/a)
+appId: com.strivon.mobile
+env:
+  PLATFORM: ios

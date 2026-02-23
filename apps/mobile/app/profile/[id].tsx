@@ -20,6 +20,7 @@ import { FollowButton } from '@/components/profile/FollowButton';
 import { useCurrentUserId } from '@/hooks/useCurrentUserId';
 import { useUserBadges } from '@/hooks/useUserBadges';
 import { useReportBlock } from '@/hooks/useReportBlock';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -411,10 +412,11 @@ export default function UserProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <FlatList
-        data={filteredPosts}
-        keyExtractor={(item) => item?.id || `post-${Math.random()}`}
+    <ErrorBoundary>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <FlatList
+          data={filteredPosts}
+        keyExtractor={(item, index) => item?.id || `post-${index}`}
         renderItem={({ item }) => {
           if (!item || !item.id || !item.author || !item.author.id || !item.author.name) {
             return null;
@@ -449,8 +451,9 @@ export default function UserProfileScreen() {
             <EmptyState {...getEmptyState()} />
           )
         }
-      />
-    </SafeAreaView>
+        />
+      </SafeAreaView>
+    </ErrorBoundary>
   );
 }
 

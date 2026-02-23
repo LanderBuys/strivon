@@ -591,6 +591,8 @@ export const PostCard = React.memo(function PostCard({
         onPress={onPress}
         onLongPress={post.author ? () => { haptics.medium(); onLongPress?.(post); } : undefined}
         activeOpacity={0.98}
+        accessibilityRole="button"
+        accessibilityLabel={`Post by ${post.author?.name || 'User'}. Double tap to open.`}
         style={[
           styles.postContainer,
           { 
@@ -623,6 +625,8 @@ export const PostCard = React.memo(function PostCard({
               }]}
               onPress={handleProfilePress}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`View profile of ${post.author?.name || 'User'}`}
             >
               <View style={[styles.avatar, {
                 backgroundColor: post.author?.avatar 
@@ -651,6 +655,8 @@ export const PostCard = React.memo(function PostCard({
                 style={styles.nameRow}
                 onPress={handleProfilePress}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`View profile of ${post.author?.name || 'User'}`}
               >
                 <Text style={[styles.userName, { color: postTextColor }]} numberOfLines={1}>
                   {post.author?.name || 'User'}
@@ -676,6 +682,8 @@ export const PostCard = React.memo(function PostCard({
                 }}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="More options for this post"
               >
                 <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
               </TouchableOpacity>
@@ -823,6 +831,8 @@ export const PostCard = React.memo(function PostCard({
             style={styles.actionButton}
             onPress={handleLike}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel={post.isLiked ? `Unlike. ${post.likes} likes` : `Like. ${post.likes || 0} likes`}
           >
             <Ionicons 
               name={post.isLiked ? 'heart' : 'heart-outline'} 
@@ -844,6 +854,8 @@ export const PostCard = React.memo(function PostCard({
             style={styles.actionButton}
             onPress={handleComment}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Comment. ${post.comments ?? 0} comments`}
           >
             <Ionicons 
               name="chatbubble-outline" 
@@ -865,6 +877,8 @@ export const PostCard = React.memo(function PostCard({
             style={styles.actionButton}
             onPress={handleSave}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel={post.isSaved ? 'Unsave post' : 'Save post'}
           >
             <Ionicons 
               name={post.isSaved ? 'bookmark' : 'bookmark-outline'} 
@@ -881,6 +895,8 @@ export const PostCard = React.memo(function PostCard({
               haptics.light();
               setShowShareModal(true);
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Share post"
           >
             <Ionicons 
               name="share-outline" 

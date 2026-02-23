@@ -15,6 +15,7 @@ import { Colors, Spacing, BorderRadius, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useReportBlock } from '@/hooks/useReportBlock';
 import { useCurrentUserId } from '@/hooks/useCurrentUserId';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export type CommentGroup = { comment: ThreadMessage; replies: ThreadMessage[] };
 
@@ -231,17 +232,20 @@ export default function ThreadScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      </SafeAreaView>
+      <ErrorBoundary>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        </SafeAreaView>
+      </ErrorBoundary>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <ErrorBoundary>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.divider }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
             <Ionicons name="chevron-back" size={28} color={colors.text} />
@@ -276,33 +280,37 @@ export default function ThreadScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </ErrorBoundary>
     );
   }
 
   if (!post) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-            activeOpacity={0.7}>
-            <ThemedText style={styles.backButtonText}>← Back</ThemedText>
-          </TouchableOpacity>
-        </View>
-        <EmptyState
-          icon="exclamationmark.triangle"
-          title="Thread not found"
-          message="This thread may have been deleted or doesn't exist"
-        />
-      </SafeAreaView>
+      <ErrorBoundary>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButton}
+              activeOpacity={0.7}>
+              <ThemedText style={styles.backButtonText}>← Back</ThemedText>
+            </TouchableOpacity>
+          </View>
+          <EmptyState
+            icon="exclamationmark.triangle"
+            title="Thread not found"
+            message="This thread may have been deleted or doesn't exist"
+          />
+        </SafeAreaView>
+      </ErrorBoundary>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <KeyboardAvoidingView
+    <ErrorBoundary>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
@@ -427,7 +435,8 @@ export default function ThreadScreen() {
           onCancelReply={handleCancelReply}
         />
       </KeyboardAvoidingView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ErrorBoundary>
   );
 }
 

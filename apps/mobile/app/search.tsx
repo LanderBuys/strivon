@@ -26,6 +26,7 @@ import { TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { canUseAdvancedSearch } from '@/lib/services/subscriptionService';
 import { useFocusEffect } from '@react-navigation/native';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 type SearchTabType = 'people' | 'projects' | 'topics';
 
@@ -144,10 +145,11 @@ export default function SearchScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top'] as const}>
-      <View style={[styles.header, { borderBottomColor: colors.divider }]}>
-        <ThemedText type="title" style={styles.title}>Search</ThemedText>
-      </View>
+    <ErrorBoundary>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top'] as const}>
+        <View style={[styles.header, { borderBottomColor: colors.divider }]}>
+          <ThemedText type="title" style={styles.title}>Search</ThemedText>
+        </View>
       <View style={styles.searchContainer}>
         <View style={styles.searchBarRow}>
           <View style={{ flex: 1 }}>
@@ -220,7 +222,8 @@ export default function SearchScreen() {
           setAdvancedFilters({});
         }}
       />
-    </SafeAreaView>
+      </SafeAreaView>
+    </ErrorBoundary>
   );
 }
 

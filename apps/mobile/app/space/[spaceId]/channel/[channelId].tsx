@@ -18,7 +18,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { getChannelMessages, sendChannelMessage, reactToChannelMessage, deleteChannelMessage, editChannelMessage } from '@/lib/api/channels';
 import { getSpaceById } from '@/lib/api/spaces';
 import { Space } from '@/types/post';
-import { mockUsers, mockUserSpaces } from '@/lib/mocks/users';
+import { getCurrentUserIdOrFallback } from '@/lib/api/users';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
@@ -56,7 +56,7 @@ export default function ChannelChatScreen() {
   const haptics = useHapticFeedback();
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const currentUserId = mockUsers[0].id;
+  const currentUserId = getCurrentUserIdOrFallback();
   const { getReportBlockOptions } = useReportBlock();
 
   const handleTyping = useCallback(() => {
@@ -112,10 +112,10 @@ export default function ChannelChatScreen() {
         return;
       }
       
-      const currentUserId = mockUsers[0].id;
+      const currentUserId = getCurrentUserIdOrFallback();
       // ALWAYS check ownerId first - this is the source of truth
       const isOwner = fetchedSpace.ownerId === currentUserId || fetchedSpace.ownerId === `user-${currentUserId}`;
-      const isJoined = mockUserSpaces.includes(fetchedSpace.id) || isOwner;
+      const isJoined = fetchedSpace.isJoined || isOwner;
       
       // Force owner role if user is owner, regardless of what's in fetchedSpace
       const finalMemberRole = isOwner ? 'owner' : (fetchedSpace.memberRole || (isJoined ? 'member' : undefined));
@@ -234,7 +234,7 @@ export default function ChannelChatScreen() {
     // Optimistic update
     const tempMessage: ThreadMessage = {
       id: `temp-${Date.now()}`,
-      author: mockUsers[0],
+      author: { id: getCurrentUserIdOrFallback(), name: 'You', handle: '@you', avatar: null },
       content: content.trim() || (media && media.length > 0 ? '📎 Media' : ''),
       createdAt: new Date().toISOString(),
       reactions: [],
@@ -587,8 +587,8 @@ export default function ChannelChatScreen() {
             ListFooterComponent={
             isTyping ? (
               <TypingIndicator
-                avatar={mockUsers[0].avatar}
-                name={mockUsers[0].name}
+                avatar={undefined}
+                name="You"
               />
             ) : null
           }

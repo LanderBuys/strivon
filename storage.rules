@@ -1,0 +1,27 @@
+rules_version = '2';
+// Deploy: firebase deploy --only storage
+// Quarantine: upload only, no reads (so users cannot distribute unmoderated content).
+// Public: readable after moderation approves.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Profile images (avatar, banner): user can write own; anyone can read
+    match /profile/{uid}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Quarantine: users can write only to their own path; NO ONE can read (including uploader)
+    match /quarantine/{uid}/{allPaths=**} {
+      allow read: if false;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Public: readable by everyone (or restrict to request.auth != null if you want logged-in only)
+    match /public/{uid}/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

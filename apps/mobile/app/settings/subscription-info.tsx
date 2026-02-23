@@ -1,19 +1,22 @@
-import { useState } from 'react';
-import { StyleSheet, ScrollView, View, TouchableOpacity, Text, Platform } from 'react-native';
+import { StyleSheet, ScrollView, View, TouchableOpacity, Text, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { Ionicons } from '@expo/vector-icons';
-
-// Subscription plans and features will be added here
+import { WebAppUrls } from '@/constants/urls';
 
 export default function SubscriptionInfoScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const haptics = useHapticFeedback();
+
+  const openPricing = () => {
+    haptics.light();
+    Linking.openURL(WebAppUrls.pricing());
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -39,19 +42,34 @@ export default function SubscriptionInfoScreen() {
           <View style={[styles.heroIcon, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}>
             <Ionicons name="star" size={36} color={colors.primary} />
           </View>
-          <Text style={[styles.heroTitle, { color: colors.text }]}>Subscription Plans</Text>
+          <Text style={[styles.heroTitle, { color: colors.text }]}>Free, Pro & Premium</Text>
           <Text style={[styles.heroSubtitle, { color: colors.secondary }]}>
-            Premium features coming soon
+            Same limits as on the web. Upgrade in-app for scheduling, boosts, and analytics.
           </Text>
+        </View>
+
+        {/* Pricing link */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            onPress={openPricing}
+            style={[styles.pricingCard, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="open-outline" size={28} color={colors.primary} />
+            <Text style={[styles.pricingCardTitle, { color: colors.text }]}>View full pricing</Text>
+            <Text style={[styles.pricingCardText, { color: colors.secondary }]}>
+              See the full feature comparison (Free, Pro $9/mo, Premium $19/mo) on our website.
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Placeholder Section */}
         <View style={styles.section}>
           <View style={[styles.placeholderCard, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}>
             <Ionicons name="construct-outline" size={48} color={colors.secondary} />
-            <Text style={[styles.placeholderTitle, { color: colors.text }]}>Plans Under Development</Text>
+            <Text style={[styles.placeholderTitle, { color: colors.text }]}>Manage in app</Text>
             <Text style={[styles.placeholderText, { color: colors.secondary }]}>
-              We're working on exciting premium features. Check back soon!
+              Subscriptions are managed in the app. Cancel anytime.
             </Text>
           </View>
         </View>
@@ -558,6 +576,29 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: Typography.sm * 1.4,
   },
+  pricingCard: {
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
+      android: { elevation: 3 },
+    }),
+  },
+  pricingCardTitle: {
+    fontSize: Typography.lg,
+    fontWeight: '700',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
+  pricingCardText: {
+    fontSize: Typography.sm,
+    textAlign: 'center',
+    lineHeight: Typography.sm * 1.5,
+    opacity: 0.9,
+  },
   placeholderCard: {
     padding: Spacing.xl * 2,
     borderRadius: BorderRadius.xl,
@@ -565,7 +606,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: Spacing.xl,
-    minHeight: 300,
+    minHeight: 200,
   },
   placeholderTitle: {
     fontSize: Typography.xl,

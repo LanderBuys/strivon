@@ -69,7 +69,7 @@ export function GroupChatCreateModal({ visible, onClose, onCreateGroup }: GroupC
     if (!selectedMembers.includes(userId) && maxMembers > 0 && selectedMembers.length >= maxMembers) {
       Alert.alert(
         'Member Limit Reached',
-        `You can add up to ${maxMembers} members to a group chat with your current plan. ${maxMembers === 50 ? 'Upgrade to Pro+ for up to 500 members.' : 'Upgrade to Pro for group chats.'}`,
+        `You can add up to ${maxMembers} members to a group chat with your current plan. ${maxMembers === 50 ? 'Upgrade to Premium for up to 500 members.' : 'Upgrade to Pro for group chats.'}`,
         [{ text: 'OK' }]
       );
       return;
@@ -108,7 +108,7 @@ export function GroupChatCreateModal({ visible, onClose, onCreateGroup }: GroupC
     if (maxMembers > 0 && selectedMembers.length > maxMembers) {
       Alert.alert(
         'Member Limit Exceeded',
-        `You can add up to ${maxMembers} members to a group chat. ${maxMembers === 50 ? 'Upgrade to Pro+ for up to 500 members.' : ''}`,
+        `You can add up to ${maxMembers} members to a group chat. ${maxMembers === 50 ? 'Upgrade to Premium for up to 500 members.' : ''}`,
         [{ text: 'OK' }]
       );
       return;

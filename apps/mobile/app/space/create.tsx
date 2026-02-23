@@ -9,7 +9,6 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { createSpace, CreateSpaceData } from '@/lib/api/spaces';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { Toast } from '@/components/ui/Toast';
-import { mockUserSpaces } from '@/lib/mocks/users';
 import * as ImagePicker from 'expo-image-picker';
 import { Image as ExpoImage } from 'expo-image';
 import { canCreatePrivateSpaces } from '@/lib/services/subscriptionService';
@@ -300,10 +299,6 @@ export default function CreateSpaceScreen() {
       };
 
       const newSpace = await createSpace(spaceData);
-      
-      // Auto-join the creator to the space
-      mockUserSpaces.push(newSpace.id);
-      
       haptics.success();
       showToast('Space created successfully!', 'success');
       
@@ -806,7 +801,7 @@ export default function CreateSpaceScreen() {
               </View>
             ))}
             <Text style={[styles.hint, { color: colors.secondary }]}>
-              Leave empty to create a default "general" channel
+              Leave empty to create a default &quot;general&quot; channel
             </Text>
           </View>
 

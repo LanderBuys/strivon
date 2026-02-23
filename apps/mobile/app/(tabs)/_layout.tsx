@@ -1,14 +1,28 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs, useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabLayout() {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'] || { tint: '#1D9BF0' };
+  const { user, isFirebaseEnabled } = useAuth();
+
+  useEffect(() => {
+    if (isFirebaseEnabled && !user) {
+      const t = setTimeout(() => router.replace('/sign-in'), 0);
+      return () => clearTimeout(t);
+    }
+  }, [isFirebaseEnabled, user, router]);
+
+  if (isFirebaseEnabled && !user) {
+    return null;
+  }
 
   return (
     <Tabs

@@ -123,3 +123,24 @@ Use the exact same values you copied from the Firebase config in Part 1.
 | When are they used? | When you run a **production** EAS build (`eas build --profile production`). |
 
 Once all seven required secrets are set, you’re good to run production builds. For local development you keep using `apps/mobile/.env` (copy from `.env.example`); EAS Secrets are only for builds on Expo’s servers.
+
+---
+
+## Deep linking
+
+The app uses the URL scheme **`mobile`** (set in `app.config.js`). Supported links open the app to the right screen when the app is installed.
+
+| Link | Opens |
+|------|--------|
+| `mobile://` | App (root) |
+| `mobile:///(tabs)` | Main tabs (feed) |
+| `mobile:///post/{id}` | Single post |
+| `mobile:///thread/{id}` | Thread (comments) |
+| `mobile:///profile/{id}` | User profile |
+| `mobile:///space/{id}` | Space detail |
+| `mobile:///story/{id}` | Story viewer |
+| `mobile:///search` | Search |
+| `mobile:///search-results?q=...` | Search results |
+| `mobile:///chat/{id}` | Chat conversation |
+
+Use these in push notification payloads (`data.link`), emails, or share links. For universal links (https), configure your domain in the Apple/Google developer consoles and wire the same paths.

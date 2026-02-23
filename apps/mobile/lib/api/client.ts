@@ -80,18 +80,20 @@ export async function apiRequest<T = unknown>(
       body = text;
     }
     if (!res.ok) {
+      const errBody = body as { message?: string } | undefined;
       throw new ApiError(
-        (body as any)?.message ?? `Request failed: ${res.status}`,
+        errBody?.message ?? `Request failed: ${res.status}`,
         res.status,
         body
       );
     }
     return body as T;
-  } catch (e: any) {
+  } catch (e: unknown) {
     clearTimeout(timeout);
-    if (e.name === 'AbortError') throw new ApiError('Request timed out.', 408);
+    if (e instanceof Error && e.name === 'AbortError') throw new ApiError('Request timed out.', 408);
     if (e instanceof ApiError) throw e;
-    throw new ApiError(e?.message ?? 'Network error.');
+    const message = e instanceof Error ? e.message : 'Network error.';
+    throw new ApiError(message);
   }
 }
 

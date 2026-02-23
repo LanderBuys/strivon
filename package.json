@@ -13,7 +13,10 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
+    "firebase-admin": "^13.6.1",
     "firebase-tools": "^13.0.0",
+    "picocolors": "^1.1.1",
+    "source-map-js": "^1.2.1",
     "typescript": "~5.9.2"
   },
   "dependencies": {

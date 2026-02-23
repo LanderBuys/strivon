@@ -19,9 +19,19 @@ function parseDate(createdAt: string | undefined): Date | null {
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-/** Event tracking: send to your analytics backend (e.g. Firebase Analytics, Mixpanel). */
+/** Event tracking: logs in __DEV__; in production send to Firebase Analytics or your backend. */
 let analyticsUserId: string | null = null;
 const eventQueue: Array<{ name: string; props?: Record<string, unknown> }> = [];
+
+function sendToBackend(name: string, props?: Record<string, unknown>) {
+  if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    // eslint-disable-next-line no-console
+    console.log('[Analytics]', name, props);
+    return;
+  }
+  eventQueue.push({ name, props });
+  // Production: wire eventQueue to Firebase Analytics (e.g. @react-native-firebase/analytics) or your backend.
+}
 
 export const analyticsService = {
   setUserId: (userId: string | null) => {
@@ -29,11 +39,7 @@ export const analyticsService = {
   },
   trackEvent: (name: string, props?: Record<string, unknown>) => {
     eventQueue.push({ name, props });
-    if (typeof __DEV__ !== 'undefined' && __DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[Analytics]', name, props);
-    }
-    // TODO: send to backend/Firebase Analytics
+    sendToBackend(name, props);
   },
   trackScreen: (screenName: string) => {
     analyticsService.trackEvent('screen_view', { screen_name: screenName });
@@ -44,7 +50,7 @@ export const analyticsService = {
   trackRetention: (metric: string, value: number | string) => {
     analyticsService.trackEvent('retention', { metric, value });
   },
-  getUserAnalytics: async (userId: string, posts: any[], period: string) => {
+  getUserAnalytics: async (userId: string, posts: Array<{ id?: string; title?: string; content?: string; author?: { id: string }; createdAt?: string; likes?: number; comments?: number; reposts?: number; saves?: number; views?: number }>, period: string) => {
     const periodStart = getPeriodStart(period);
     const isInPeriod = (createdAt: string | undefined) => {
       if (!periodStart) return true;
@@ -91,8 +97,8 @@ export const analyticsService = {
     // Top posts by engagement
     const topPosts = userPosts
       .map((p) => ({
-        postId: p.id,
-        title: p.title || (typeof p.content === 'string' ? p.content.substring(0, 50) : '') || 'Untitled Post',
+        postId: p.id ?? '',
+        title: p.title ?? (typeof p.content === 'string' ? p.content.substring(0, 50) : '') ?? 'Untitled Post',
         engagement: (p.likes || 0) + (p.comments || 0) + (p.reposts || 0) + (p.saves || 0),
         likes: p.likes || 0,
         comments: p.comments || 0,

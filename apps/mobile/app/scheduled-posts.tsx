@@ -116,13 +116,13 @@ export default function ScheduledPostsScreen() {
             Advanced Scheduling
           </ThemedText>
           <ThemedText style={[styles.lockedMessage, { color: colors.secondary }]}>
-            Advanced scheduling queue is available for Pro+ subscribers. Upgrade to schedule multiple posts and manage your content queue.
+            Advanced scheduling queue is available for Premium subscribers. Upgrade to schedule multiple posts and manage your content queue.
           </ThemedText>
           <TouchableOpacity
             style={[styles.upgradeButton, { backgroundColor: colors.primary }]}
             onPress={() => router.push('/settings/subscription-info')}
           >
-            <Text style={styles.upgradeButtonText}>Upgrade to Pro+</Text>
+            <Text style={styles.upgradeButtonText}>Upgrade to Premium</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

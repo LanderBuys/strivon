@@ -4,7 +4,15 @@ Use this checklist before releasing to production (App Store, Play Store, or web
 
 ---
 
-## 0. Code & build verification (already in repo)
+## 0. Code & build verification
+
+Before release, run:
+
+- **Mobile typecheck:** `cd apps/mobile && npm run typecheck` (must pass).
+- **Mobile lint:** `cd apps/mobile && npm run lint` (must pass; 0 errors).
+- **Web build:** `cd apps/web && npm run build` (must pass).
+
+The following are already in place:
 
 - **Firestore rules** – `firestore.rules` is present; all collections require `request.auth != null` (no public read/write).
 - **Auth** – `app.config.js` passes `EXPO_PUBLIC_REQUIRE_AUTH` into `extra.requireAuth`; `app/index.tsx` redirects to sign-in when `requireAuth && isFirebaseEnabled` and user is null.
@@ -42,7 +50,7 @@ The app uses **one asset** (via `app.config.js`): **`apps/mobile/assets/logoStri
 
 - [ ] **`logoStrivon.png`** present in `apps/mobile/assets/` (recommended **1024×1024px**; used for icon, splash, Android adaptive icon, web favicon, and notification icon).
 
-See `apps/mobile/assets/README.md` for guidance. Without it, builds may fail. For placeholder-only assets (e.g. CI), run `npm run create-assets` in `apps/mobile`; for production, use your real **logoStrivon.png** (1024×1024) with the existing `app.config.js`.
+See `apps/mobile/assets/README.md` for guidance. Without it, builds may fail. For placeholder-only assets (e.g. CI), run `npm run create-assets` in `apps/mobile` (this creates **logoStrivon.png**); for production, use your real **logoStrivon.png** (1024×1024) with the existing `app.config.js`.
 
 ---
 
@@ -58,18 +66,17 @@ See `apps/mobile/assets/README.md` for guidance. Without it, builds may fail. Fo
   eas build --platform ios --profile production
   eas build --platform android --profile production
   ```
-- [ ] Submit to stores (after builds succeed):
+- [ ] Submit to stores (after builds succeed): fill in `apps/mobile/eas.json` → `submit.production` with your Apple ID, ASC App ID, Apple Team ID, and Android service account key path + track, then:
   ```bash
   eas submit --platform ios --profile production
   eas submit --platform android --profile production
   ```
-  Fill in `apps/mobile/eas.json` → `submit.production` (Apple ID, ASC App ID, team ID; Android service account path and track) when ready.
 
 ---
 
 ## 5. Web app (Next.js)
 
-- [ ] Set production env vars on your host (Vercel, etc.) if the web app uses Firebase or an API.
+- [ ] For admin (Firebase): set `NEXT_PUBLIC_FIREBASE_*` (and optionally `NEXT_PUBLIC_APP_STORE_URL`, `NEXT_PUBLIC_PLAY_STORE_URL`, `NEXT_PUBLIC_SITE_URL`) on your host. See [apps/web/FIREBASE_ENV.md](apps/web/FIREBASE_ENV.md).
 - [ ] Build and run locally to verify:
   ```bash
   cd apps/web

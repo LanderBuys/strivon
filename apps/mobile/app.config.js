@@ -20,7 +20,8 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.strivon.mobile",
-      buildNumber: process.env.EXPO_IOS_BUILD_NUMBER || "1"
+      buildNumber: process.env.EXPO_IOS_BUILD_NUMBER || "1",
+      googleServicesFile: "./GoogleService-Info.plist"
     },
     android: {
       adaptiveIcon: {
@@ -28,13 +29,15 @@ module.exports = {
         backgroundColor: "#ffffff"
       },
       package: "com.strivon.mobile",
-      versionCode: parseInt(process.env.EXPO_ANDROID_VERSION_CODE || "1", 10)
+      versionCode: parseInt(process.env.EXPO_ANDROID_VERSION_CODE || "1", 10),
+      googleServicesFile: "./google-services.json"
     },
     web: {
       favicon: "./assets/logoStrivon.png"
     },
     scheme: "mobile",
     plugins: [
+      "@react-native-google-signin/google-signin",
       "expo-router",
       [
         "expo-image-picker",
@@ -59,6 +62,7 @@ module.exports = {
       color: "#1D9BF0"
     },
     extra: {
+      eas: { projectId: "49f726dc-a306-43a5-ba83-e4dbcb0560f9" },
       newsApiKey: process.env.EXPO_PUBLIC_NEWS_API_KEY,
       apiUrl: process.env.EXPO_PUBLIC_API_URL || '',
       requireAuth: process.env.EXPO_PUBLIC_REQUIRE_AUTH === 'true',
@@ -68,6 +72,7 @@ module.exports = {
       firebaseStorageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
       firebaseMessagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
       firebaseAppId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+      googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || null,
     },
   },
 };

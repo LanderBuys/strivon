@@ -9,6 +9,7 @@ import { isPostBoosted } from '@/lib/services/boostService';
 import { isPostPremiumBoosted } from '@/lib/services/premiumBoostService';
 import { getFirestoreDb } from '@/lib/firebase';
 import { getFeedPostsFirestore, getPostByIdFirestore, createPostFirestore, likePostFirestore, savePostFirestore } from '@/lib/firestore/posts';
+import { uploadMediaToQuarantine } from '@/lib/services/mediaUploadService';
 
 export async function getFeedPosts(
   tab: string, 
@@ -18,178 +19,65 @@ export async function getFeedPosts(
   filter?: 'all' | 'media' | 'text' | 'links'
 ) {
   const db = getFirestoreDb();
-  if (db) {
-    const uid = getCurrentUserIdOrFallback();
-    const result = await getFeedPostsFirestore(tab, page, limit, uid);
-    if (filter && filter !== 'all') {
-      result.data = result.data.filter(post => {
-        if (filter === 'media' && post.media && post.media.length > 0) return true;
-        if (filter === 'text' && (!post.media || post.media.length === 0)) return true;
-        if (filter === 'links' && post.content && post.content.includes('http')) return true;
-        return false;
-      });
-    }
-    return result;
-  }
-  await new Promise(resolve => setTimeout(resolve, 500));
-  let filteredPosts = [...mockPosts];
-  
-  // "Following" tab: only posts from people the current user follows
-  if (tab === 'following') {
-    const followingUsers = await getFollowing(getCurrentUserIdOrFallback());
-    const followingIds = new Set(followingUsers.map(u => u.id).filter(Boolean));
-    if (followingIds.size > 0) {
-      filteredPosts = filteredPosts.filter(p => p.author?.id && followingIds.has(p.author.id));
-    }
-    // If not following anyone, show empty (or could show discovery prompt - keeping empty for clarity)
-  }
-  
-  // Apply content filter
+  if (!db) return { data: [], hasMore: false };
+  const uid = getCurrentUserIdOrFallback();
+  const result = await getFeedPostsFirestore(tab, page, limit, uid);
   if (filter && filter !== 'all') {
-    filteredPosts = filteredPosts.filter(post => {
+    result.data = result.data.filter(post => {
       if (filter === 'media' && post.media && post.media.length > 0) return true;
       if (filter === 'text' && (!post.media || post.media.length === 0)) return true;
       if (filter === 'links' && post.content && post.content.includes('http')) return true;
       return false;
     });
   }
-  
-  // Apply visibility boost from badges and priority placement for Pro+
-  const postsWithBoost = await Promise.all(filteredPosts.map(async (post) => {
-    try {
-      const userBadges = await getUserBadges(post.author);
-      const perks = getBadgePerks(userBadges.badges.map(b => b.badge));
-      const baseScore = post.likes + (post.comments || 0);
-      let boostedScore = applyVisibilityBoost(baseScore, perks.visibilityBoost);
-      
-      // Check if post author has Pro+ and post is boosted (priority placement)
-      try {
-        const authorMetrics = await getUserMetrics();
-        // Check if this is the author's post and they have Pro+
-        if (post.author?.id && authorMetrics.subscriptionTier === 'pro-plus') {
-          // Check if post is boosted with premium boost
-          const isPremiumBoosted = await isPostPremiumBoosted(post.id);
-          if (isPremiumBoosted) {
-            // Apply 1.5x priority placement boost for Pro+ boosted posts
-            boostedScore = boostedScore * 1.5;
-          }
-        }
-      } catch (error) {
-        // Ignore errors in subscription check
-      }
-      
-      return { ...post, _boostedScore: boostedScore };
-    } catch (error) {
-      return { ...post, _boostedScore: post.likes + (post.comments || 0) };
-    }
-  }));
-  
-  // Apply sort (default: newest)
-  const effectiveSort = sort || 'newest';
-  const now = Date.now();
-
-  if (effectiveSort === 'popular') {
-    // Pure engagement: highest likes + comments first; tie-break by newest
-    postsWithBoost.sort((a, b) => {
-      const scoreDiff = (b._boostedScore || 0) - (a._boostedScore || 0);
-      if (scoreDiff !== 0) return scoreDiff;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-  } else if (effectiveSort === 'trending') {
-    // Trending = engagement weighted by recency (newer + high engagement ranks higher)
-    // recencyWeight: 2^(-hours/24) so half-life 24h
-    const getTrendingScore = (post: typeof postsWithBoost[0]) => {
-      const engagement = post._boostedScore || 0;
-      const hoursSince = (now - new Date(post.createdAt).getTime()) / (1000 * 60 * 60);
-      const recencyWeight = Math.pow(2, -hoursSince / 24);
-      return engagement * recencyWeight;
-    };
-    postsWithBoost.sort((a, b) => {
-      const scoreDiff = getTrendingScore(b) - getTrendingScore(a);
-      if (scoreDiff !== 0) return scoreDiff;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-  } else {
-    // newest (default): chronological, with boost as tie-breaker within same hour
-    postsWithBoost.sort((a, b) => {
-      const timeDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      if (Math.abs(timeDiff) >= 3600000) return timeDiff;
-      return (b._boostedScore || 0) - (a._boostedScore || 0) || timeDiff;
-    });
-  }
-
-  // Remove temporary boost score
-  const finalPosts = postsWithBoost.map(({ _boostedScore, ...post }) => post);
-
-  // Paginate
-  const startIndex = (page - 1) * limit;
-  const endIndex = startIndex + limit;
-  return {
-    data: finalPosts.slice(startIndex, endIndex),
-    hasMore: endIndex < finalPosts.length,
-  };
+  return result;
 }
 
 export async function getPostById(id: string) {
   const db = getFirestoreDb();
-  if (db) return getPostByIdFirestore(id);
-  await new Promise(resolve => setTimeout(resolve, 300));
-  const post = mockPosts.find(p => p.id === id);
-  return post || null;
+  if (!db) return null;
+  return getPostByIdFirestore(id);
 }
 
-export async function createPost(data: any): Promise<Post> {
+export async function createPost(data: any, onMediaProgress?: (progress: number) => void): Promise<Post> {
   const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore not configured. Sign in and try again.');
   const currentUser = await getUserById(getCurrentUserIdOrFallback());
   if (!currentUser) throw new Error('User not found');
-  const media: PostMedia[] = (data.media || []).map((item: any, index: number) => ({
-    id: `m${Date.now()}-${index}`,
-    type: item.type || 'image',
-    url: item.uri,
-    thumbnail: item.type === 'video' ? item.thumbnail : undefined,
-    width: item.width,
-    height: item.height,
-    duration: item.duration,
-  }));
-  if (db) {
-    const author = {
-      id: currentUser.id,
-      name: currentUser.name,
-      handle: currentUser.handle,
-      avatar: currentUser.avatar ?? null,
-      label: currentUser.label,
-      country: currentUser.country,
-    };
-    return createPostFirestore(author, {
-      content: data.content || '',
-      title: data.title,
-      media: media.length > 0 ? media : undefined,
-      poll: data.poll,
-      contentWarning: data.contentWarning || null,
-      hashtags: Array.isArray(data.tags) ? data.tags : undefined,
-    });
+
+  const rawMedia = data.media || [];
+  let mediaId: string | undefined;
+  let mediaForPost: PostMedia[] | undefined;
+
+  if (rawMedia.length > 0) {
+    // Moderation pipeline: upload first item to quarantine, create media doc, post as processing until approved
+    const first = rawMedia[0];
+    const mediaType = (first.type === 'video' ? 'video' : 'image') as 'image' | 'video';
+    const { mediaId: mid } = await uploadMediaToQuarantine(first.uri, mediaType, onMediaProgress);
+    mediaId = mid;
+    // Post gets no public media URLs yet; backend will set post.media when approved
+    mediaForPost = [];
+  } else {
+    mediaForPost = undefined;
   }
-  await new Promise(resolve => setTimeout(resolve, 500));
-  const newId = `post-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  const newPost: Post = {
-    id: newId,
-    author: { id: currentUser.id, name: currentUser.name, handle: currentUser.handle, avatar: currentUser.avatar || null, label: currentUser.label },
+
+  const author = {
+    id: currentUser.id,
+    name: currentUser.name,
+    handle: currentUser.handle,
+    avatar: currentUser.avatar ?? null,
+    label: currentUser.label,
+    country: currentUser.country,
+  };
+  return createPostFirestore(author, {
     content: data.content || '',
     title: data.title,
-    createdAt: new Date().toISOString(),
-    likes: 0,
-    saves: 0,
-    comments: 0,
-    views: 0,
-    isLiked: false,
-    isSaved: false,
-    media: media.length > 0 ? media : undefined,
-    poll: data.poll ? { question: data.poll.question, options: data.poll.options, totalVotes: 0, userVote: undefined } : undefined,
+    media: mediaForPost,
+    mediaId,
+    poll: data.poll,
     contentWarning: data.contentWarning || null,
-    hashtags: Array.isArray(data.tags) && data.tags.length > 0 ? data.tags : undefined,
-  };
-  mockPosts.unshift(newPost);
-  return newPost;
+    hashtags: Array.isArray(data.tags) ? data.tags : undefined,
+  });
 }
 
 // Track voting in progress to prevent race conditions
@@ -285,45 +173,29 @@ export async function votePoll(postId: string, optionId: string) {
 /** Persist like toggle so it survives refresh and is consistent across app. */
 export async function likePost(postId: string): Promise<{ isLiked: boolean; likes: number }> {
   const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore not configured');
   const uid = getCurrentUserIdOrFallback();
-  if (db) {
-    const post = await getPostById(postId);
-    if (!post) throw new Error('Post not found');
-    const newLikes = await likePostFirestore(postId, uid);
-    return { isLiked: !post.isLiked, likes: newLikes };
-  }
-  await new Promise(resolve => setTimeout(resolve, 150));
-  const post = mockPosts.find(p => p.id === postId);
+  const post = await getPostById(postId);
   if (!post) throw new Error('Post not found');
-  post.isLiked = !post.isLiked;
-  post.likes = Math.max(0, post.likes + (post.isLiked ? 1 : -1));
-  return { isLiked: post.isLiked, likes: post.likes };
+  const newLikes = await likePostFirestore(postId, uid);
+  return { isLiked: !post.isLiked, likes: newLikes };
 }
 
 /** Persist save toggle so it survives refresh. */
 export async function savePost(postId: string): Promise<{ isSaved: boolean; saves: number }> {
   const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore not configured');
   const uid = getCurrentUserIdOrFallback();
-  if (db) {
-    const post = await getPostById(postId);
-    if (!post) throw new Error('Post not found');
-    const newSaves = await savePostFirestore(postId, uid);
-    return { isSaved: !post.isSaved, saves: newSaves };
-  }
-  await new Promise(resolve => setTimeout(resolve, 150));
-  const post = mockPosts.find(p => p.id === postId);
+  const post = await getPostById(postId);
   if (!post) throw new Error('Post not found');
-  post.isSaved = !post.isSaved;
-  post.saves = Math.max(0, post.saves + (post.isSaved ? 1 : -1));
-  return { isSaved: post.isSaved, saves: post.saves };
+  const newSaves = await savePostFirestore(postId, uid);
+  return { isSaved: !post.isSaved, saves: newSaves };
 }
 
-/** Increment post comment count when a user adds a comment (keeps feed in sync). */
+/** Return current comment count (increment is done in Firestore when sending a thread message). */
 export async function incrementPostCommentCount(postId: string): Promise<number> {
-  const post = mockPosts.find(p => p.id === postId);
-  if (!post) return 0;
-  post.comments = (post.comments ?? 0) + 1;
-  return post.comments;
+  const post = await getPostById(postId);
+  return post ? (post.comments ?? 0) : 0;
 }
 
 // In-app sharing functions
@@ -337,44 +209,21 @@ export interface ShareTarget {
 }
 
 export async function getShareTargets(): Promise<ShareTarget[]> {
-  await new Promise(resolve => setTimeout(resolve, 300));
-
-  const uid = getCurrentUserIdOrFallback();
-  const followingUsers = await getFollowing(uid);
-  const followingIds = new Set(followingUsers.map(u => u.id).filter(Boolean));
-
-  const followingTargets: ShareTarget[] = followingUsers
-    .filter(user => user && user.id && user.name)
-    .map(user => ({
+  const followingUsers = await getFollowing(getCurrentUserIdOrFallback());
+  return followingUsers
+    .filter((user) => user && user.id && user.name)
+    .map((user) => ({
       id: user.id,
       name: user.name,
       type: 'user' as const,
       avatar: user.avatar || undefined,
       isFollowing: true,
     }));
-
-  const { mockUsers } = await import('@/lib/mocks/users');
-  const otherUsers: ShareTarget[] = mockUsers
-    .filter(user => user && user.id && user.name && user.id !== uid && !followingIds.has(user.id))
-    .map(user => ({
-      id: user.id,
-      name: user.name,
-      type: 'user' as const,
-      avatar: user.avatar || undefined,
-      isFollowing: false,
-    }));
-
-  return [...followingTargets, ...otherUsers];
 }
 
 export async function sharePost(postId: string, targetIds: string[]): Promise<void> {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // Get the post
-  const post = mockPosts.find(p => p.id === postId);
-  if (!post) {
-    throw new Error('Post not found');
-  }
+  const post = await getPostById(postId);
+  if (!post) throw new Error('Post not found');
   
   // Import chat API to send messages
   const { sendChatMessage } = await import('./chat');
@@ -391,7 +240,7 @@ export async function sharePost(postId: string, targetIds: string[]): Promise<vo
 
   for (const targetId of targetIds) {
     try {
-      const conversationId = getConversationIdForUser(targetId);
+      const conversationId = await getConversationIdForUser(targetId);
       if (!conversationId) {
         console.warn(`No conversation found for user ${targetId}, skipping`);
         continue;

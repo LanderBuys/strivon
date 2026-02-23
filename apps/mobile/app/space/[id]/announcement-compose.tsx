@@ -14,7 +14,6 @@ import { MentionAutocomplete } from '@/components/create/MentionAutocomplete';
 import { HashtagSuggestions } from '@/components/create/HashtagSuggestions';
 import { createSpaceAnnouncement, SpaceAnnouncementMediaItem } from '@/lib/services/spaceAnnouncementService';
 import { getSpaceById } from '@/lib/api/spaces';
-import { mockUserSpaces } from '@/lib/mocks/users';
 import { useCurrentUserId } from '@/hooks/useCurrentUserId';
 
 export default function AnnouncementComposeScreen() {
@@ -60,7 +59,7 @@ export default function AnnouncementComposeScreen() {
     const space = await getSpaceById(spaceId);
     setSpaceName(space?.name || 'Space');
     setSpaceOwnerId(space?.ownerId);
-    const joined = Boolean((space as any)?.isJoined) || mockUserSpaces.includes(spaceId);
+    const joined = Boolean((space as any)?.isJoined);
     const owner = Boolean(space?.ownerId && (space.ownerId === currentUserId || space.ownerId === `user-${currentUserId}`));
     setIsJoined(joined || owner);
   }, [spaceId, currentUserId]);
@@ -148,7 +147,7 @@ export default function AnnouncementComposeScreen() {
       if (media.length >= maxMedia) {
         Alert.alert(
           'Media Limit Reached',
-          `You can add up to ${maxMedia} media item${maxMedia > 1 ? 's' : ''} per post. Upgrade to Pro for 10 items or Pro+ for 20 items.`,
+          `You can add up to ${maxMedia} media item${maxMedia > 1 ? 's' : ''} per post. Upgrade to Pro for 10 items or Premium for 20 items.`,
           [{ text: 'OK' }]
         );
         return;

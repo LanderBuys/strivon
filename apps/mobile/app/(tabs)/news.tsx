@@ -30,6 +30,7 @@ import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useFadeIn } from '@/hooks/useFadeIn';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Check if API key is available
 const hasApiKey = !!(process.env.EXPO_PUBLIC_NEWS_API_KEY || Constants.expoConfig?.extra?.newsApiKey);
@@ -311,7 +312,7 @@ export default function NewsScreen() {
         return (
           <View style={styles.footerEnd}>
             <Text style={[styles.footerEndText, { color: colors.secondary }]}>
-              You're all caught up
+              You&apos;re all caught up
             </Text>
           </View>
         );
@@ -333,7 +334,7 @@ export default function NewsScreen() {
           <View style={[styles.errorIconWrap, { backgroundColor: colors.error + '15' }]}>
             <Ionicons name="cloud-offline-outline" size={48} color={colors.error} />
           </View>
-          <Text style={[styles.errorTitle, { color: colors.text }]}>Couldn't load articles</Text>
+          <Text style={[styles.errorTitle, { color: colors.text }]}>Couldn&apos;t load articles</Text>
           <Text style={[styles.errorMessage, { color: colors.secondary }]}>{error}</Text>
           <TouchableOpacity
             style={[styles.retryButton, { backgroundColor: colors.primary }]}
@@ -398,21 +399,24 @@ export default function NewsScreen() {
 
   if (loading && articles.length === 0) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        {renderHeader()}
-        <ScrollView
-          contentContainerStyle={styles.skeletonContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {renderSkeleton()}
-        </ScrollView>
-      </SafeAreaView>
+      <ErrorBoundary>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+          {renderHeader()}
+          <ScrollView
+            contentContainerStyle={styles.skeletonContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {renderSkeleton()}
+          </ScrollView>
+        </SafeAreaView>
+      </ErrorBoundary>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <Animated.FlatList
+    <ErrorBoundary>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <Animated.FlatList
         ref={flatListRef}
         data={listArticles}
         renderItem={renderArticle}
@@ -528,7 +532,8 @@ export default function NewsScreen() {
           }}
         />
       )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </ErrorBoundary>
   );
 }
 

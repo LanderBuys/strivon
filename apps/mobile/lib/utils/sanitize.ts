@@ -11,6 +11,7 @@ const MAX_HANDLE_LENGTH = 30;
 export function sanitizeText(input: string | null | undefined, maxLength: number = MAX_TEXT_LENGTH): string {
   if (input == null) return '';
   let s = String(input)
+    // eslint-disable-next-line no-control-regex -- intentional: strip control characters for security
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
     .trim();
   if (s.length > maxLength) s = s.slice(0, maxLength);

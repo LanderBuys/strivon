@@ -12,15 +12,15 @@ import { SpaceCardSkeleton } from '@/components/spaces/SpaceCardSkeleton';
 import { SpaceMiniCard } from '@/components/spaces/SpaceMiniCard';
 import { CommunitySpaceCard } from '@/components/spaces/CommunitySpaceCard';
 import { getSpacesPaginated, joinSpace, leaveSpace, getMyPendingJoinRequestIds } from '@/lib/api/spaces';
-import { mockUsers } from '@/lib/mocks/users';
+import { getCurrentUserIdOrFallback } from '@/lib/api/users';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Spacing, Typography, BorderRadius } from '@/constants/theme';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { mockUserSpaces } from '@/lib/mocks/users';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const COMMUNITY_SORT_KEY = '@strivon/community_sort';
 const COMMUNITY_FILTER_KEY = '@strivon/community_filter';
@@ -74,14 +74,16 @@ export default function SpacesScreen() {
         if (mounted && storedFilter) {
           setActiveFilter(storedFilter as SpaceFilter);
         }
-      } catch (_) {}
+      } catch {
+        // ignore load preferences
+      }
     })();
     return () => { mounted = false; };
   }, []);
 
   useEffect(() => {
     if (spaces.length === 0) return;
-    const currentUserId = mockUsers[0].id;
+    const currentUserId = getCurrentUserIdOrFallback();
     let mounted = true;
     getMyPendingJoinRequestIds(currentUserId).then((ids) => {
       if (mounted) setHasPendingRequests(new Set(ids));
@@ -96,22 +98,22 @@ export default function SpacesScreen() {
     lastActivity.setHours(lastActivity.getHours() - hoursAgo);
     return {
       ...space,
-      isJoined: mockUserSpaces.includes(space.id),
-      memberRole: isOwner ? 'owner' : (space.memberRole || (mockUserSpaces.includes(space.id) ? 'member' : undefined)),
+      isJoined: space.isJoined ?? false,
+      memberRole: isOwner ? 'owner' : (space.memberRole || (space.isJoined ? 'member' : undefined)),
       isTrending: (space.memberCount ?? 0) > 1500,
-      unreadCount: mockUserSpaces.includes(space.id) ? Math.floor(Math.random() * 5) : 0,
+      unreadCount: space.isJoined ? Math.floor(Math.random() * 5) : 0,
       lastActivityAt: lastActivity.toISOString(),
       onlineMembers: Math.floor(space.memberCount * (0.1 + Math.random() * 0.2)),
       isMuted: false,
       channels: space.channels.map(ch => ({
         ...ch,
-        unreadCount: mockUserSpaces.includes(space.id) && Math.random() > 0.6 ? Math.floor(Math.random() * 10) : 0,
+        unreadCount: space.isJoined && Math.random() > 0.6 ? Math.floor(Math.random() * 10) : 0,
       })),
     };
   }, []);
 
   const loadSpaces = useCallback(async (isRefresh = false) => {
-    const currentUserId = mockUsers[0].id;
+    const currentUserId = getCurrentUserIdOrFallback();
     try {
       setLoadError(null);
       if (isRefresh) {
@@ -137,7 +139,7 @@ export default function SpacesScreen() {
 
   const loadMoreSpaces = useCallback(async () => {
     if (loadingMore || !hasMore || loading) return;
-    const currentUserId = mockUsers[0].id;
+    const currentUserId = getCurrentUserIdOrFallback();
     setLoadingMore(true);
     try {
       const { spaces: pageSpaces, hasMore: more } = await getSpacesPaginated(nextOffset, 20);
@@ -203,10 +205,11 @@ export default function SpacesScreen() {
       switch (activeSort) {
         case 'members':
           return b.memberCount - a.memberCount;
-        case 'activity':
+        case 'activity': {
           const aTime = a.lastActivityAt ? new Date(a.lastActivityAt).getTime() : 0;
           const bTime = b.lastActivityAt ? new Date(b.lastActivityAt).getTime() : 0;
           return bTime - aTime;
+        }
         case 'newest':
           // Assuming newer spaces have higher IDs or we can use a timestamp
           return b.id.localeCompare(a.id);
@@ -357,7 +360,8 @@ export default function SpacesScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <ErrorBoundary>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.cardBorder }]}>
         <View style={styles.headerTop}>
           <Text style={[styles.title, { color: colors.text }]}>{showRequestsOnly ? 'Requests' : 'Community'}</Text>
@@ -530,7 +534,7 @@ export default function SpacesScreen() {
                     </View>
                     <Text style={[styles.getStartedTitle, { color: colors.text }]}>Find your first space</Text>
                     <Text style={[styles.getStartedMessage, { color: colors.secondary }]}>
-                      Join communities by topic or browse what's popular.
+                      Join communities by topic or browse what&apos;s popular.
                     </Text>
                     {categories.length > 0 && (
                       <ScrollView
@@ -772,7 +776,8 @@ export default function SpacesScreen() {
         }}
         onMute={handleMuteSpace}
       />
-    </SafeAreaView>
+      </SafeAreaView>
+    </ErrorBoundary>
   );
 }
 

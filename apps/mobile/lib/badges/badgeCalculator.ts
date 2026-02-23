@@ -1,3 +1,4 @@
+import { getCurrentUserIdOrFallback } from '@/lib/api/users';
 import { Badge, BadgeLevel, BadgeThresholds, BADGE_THRESHOLDS, TIME_BASED_BADGES, PAID_BADGES, LIMITED_PAID_BADGES, METRIC_BADGE_INFO, getAllBadges } from '@/types/badges';
 import { User } from '@/types/post';
 
@@ -48,9 +49,6 @@ export async function calculateBadges(user: User, metrics: UserMetrics): Promise
   const yearsActive = daysSinceJoin / 365;
   
   const testingState = getBadgeTestingState();
-  
-  // Check if this is the owner/current user - give them all badges
-  const { getCurrentUserIdOrFallback } = require('@/lib/api/users');
   const isOwner = user.id === getCurrentUserIdOrFallback() || user.id === '1';
   
   if (isOwner) {

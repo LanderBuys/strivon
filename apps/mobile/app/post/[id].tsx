@@ -10,6 +10,7 @@ import { getPostById, likePost as apiLikePost, savePost as apiSavePost, votePoll
 import { Colors, Spacing, BorderRadius, Typography } from '@/constants/theme';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function PostScreen() {
   const params = useLocalSearchParams<{ id: string | string[] }>();
@@ -97,7 +98,8 @@ export default function PostScreen() {
 
   if (error) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <ErrorBoundary>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.divider }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
             <Ionicons name="chevron-back" size={28} color={colors.text} />
@@ -132,13 +134,15 @@ export default function PostScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </ErrorBoundary>
     );
   }
 
   if (!post) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <ErrorBoundary>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.divider }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
             <Ionicons name="chevron-back" size={28} color={colors.text} />
@@ -149,12 +153,14 @@ export default function PostScreen() {
         <View style={styles.centered}>
           <ThemedText style={{ color: colors.secondary }}>Post not found</ThemedText>
         </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </ErrorBoundary>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <ErrorBoundary>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.divider }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={28} color={colors.text} />
@@ -173,7 +179,8 @@ export default function PostScreen() {
           onOpenMediaViewer={(postId) => router.push(`/thread/${postId}` as any)}
         />
       </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ErrorBoundary>
   );
 }
 

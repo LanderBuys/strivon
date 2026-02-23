@@ -82,5 +82,7 @@ export async function clearSeenPostIds(): Promise<void> {
   cachedIds = new Set();
   try {
     await AsyncStorage.removeItem(SEEN_POSTS_KEY);
-  } catch {}
+  } catch {
+    // ignore
+  }
 }
