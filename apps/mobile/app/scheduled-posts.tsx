@@ -21,7 +21,8 @@ export default function ScheduledPostsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [canUseAdvanced, setCanUseAdvanced] = useState(false);
-  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'pro-plus'>('free');
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'premium'>('free');
+  const [tierLoaded, setTierLoaded] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -36,6 +37,7 @@ export default function ScheduledPostsScreen() {
   const loadData = async () => {
     const tier = await getSubscriptionTier();
     setSubscriptionTier(tier);
+    setTierLoaded(true);
     const canUse = await canUseAdvancedScheduling();
     setCanUseAdvanced(canUse);
     await loadScheduledPosts();
@@ -100,7 +102,24 @@ export default function ScheduledPostsScreen() {
     }
   };
 
-  if (subscriptionTier !== 'pro-plus') {
+  // Schedule posts is Pro and Premium per pricing; only free tier is locked out. Wait for tier to load to avoid flash.
+  if (!tierLoaded) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <ThemedText type="title" style={styles.title}>Scheduled Posts</ThemedText>
+          <View style={styles.placeholder} />
+        </View>
+        <View style={[styles.center, { flex: 1 }]}>
+          <Text style={[styles.loadingText, { color: colors.secondary }]}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+  if (subscriptionTier === 'free') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
@@ -113,16 +132,16 @@ export default function ScheduledPostsScreen() {
         <View style={styles.lockedContainer}>
           <Ionicons name="lock-closed" size={64} color={colors.secondary} />
           <ThemedText type="title" style={[styles.lockedTitle, { color: colors.text }]}>
-            Advanced Scheduling
+            Scheduled Posts
           </ThemedText>
           <ThemedText style={[styles.lockedMessage, { color: colors.secondary }]}>
-            Advanced scheduling queue is available for Premium subscribers. Upgrade to schedule multiple posts and manage your content queue.
+            Schedule posts from the create screen with Pro or Premium. Upgrade to unlock scheduling and manage your content queue.
           </ThemedText>
           <TouchableOpacity
             style={[styles.upgradeButton, { backgroundColor: colors.primary }]}
             onPress={() => router.push('/settings/subscription-info')}
           >
-            <Text style={styles.upgradeButtonText}>Upgrade to Premium</Text>
+            <Text style={styles.upgradeButtonText}>Upgrade to Pro or Premium</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

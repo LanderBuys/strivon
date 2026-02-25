@@ -661,6 +661,11 @@ export const PostCard = React.memo(function PostCard({
                 <Text style={[styles.userName, { color: postTextColor }]} numberOfLines={1}>
                   {post.author?.name || 'User'}
                 </Text>
+                {post.author?.isVerified && (() => {
+                  const tier = post.author?.verifiedTier ?? 'premium';
+                  const badgeColor = tier === 'pro' ? (colorScheme === 'dark' ? '#FFFFFF' : colors.textMuted) : colors.primary;
+                  return <Ionicons name="checkmark-circle" size={16} color={badgeColor} style={styles.verifiedBadge} />;
+                })()}
               </TouchableOpacity>
               <View style={styles.metaInfo}>
                 <Text style={[styles.userHandle, { color: postSecondaryColor }]} numberOfLines={1}>
@@ -1073,6 +1078,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 2,
     flexWrap: 'wrap',
+    gap: 4,
+  },
+  verifiedBadge: {
+    marginLeft: 0,
   },
   userName: {
     fontSize: 16,

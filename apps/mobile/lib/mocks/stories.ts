@@ -1,15 +1,11 @@
 import { Story } from '@/types/post';
+import { getMockUserById } from '@/lib/mocks/users';
 
 export const mockStories: Story[] = [
-  // Your Story (always first, with + button)
+  // Your Story (always first, with + button) — profile id 1 so profile page works
   {
     id: 'your-story',
-    author: {
-      id: 'user-1',
-      name: 'Your Story',
-      handle: '@you',
-      avatar: 'https://i.pravatar.cc/150?img=1',
-    },
+    author: { ...getMockUserById('1')!, name: 'Your Story', handle: '@you' },
     mediaUrl: 'https://picsum.photos/400/800?random=1',
     mediaType: 'image',
     createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
@@ -20,12 +16,7 @@ export const mockStories: Story[] = [
   // Sarah's stories (3 stories)
   {
     id: 'sarah-1',
-    author: {
-      id: 'user-2',
-      name: 'sarah_m',
-      handle: '@sarah_m',
-      avatar: 'https://i.pravatar.cc/150?img=47',
-    },
+    author: getMockUserById('2')!,
     mediaUrl: 'https://picsum.photos/400/800?random=2',
     mediaType: 'image',
     createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
@@ -35,12 +26,7 @@ export const mockStories: Story[] = [
   },
   {
     id: 'sarah-2',
-    author: {
-      id: 'user-2',
-      name: 'sarah_m',
-      handle: '@sarah_m',
-      avatar: 'https://i.pravatar.cc/150?img=47',
-    },
+    author: getMockUserById('2')!,
     mediaUrl: 'https://picsum.photos/400/800?random=3',
     mediaType: 'image',
     createdAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
@@ -50,12 +36,7 @@ export const mockStories: Story[] = [
   },
   {
     id: 'sarah-3',
-    author: {
-      id: 'user-2',
-      name: 'sarah_m',
-      handle: '@sarah_m',
-      avatar: 'https://i.pravatar.cc/150?img=47',
-    },
+    author: getMockUserById('2')!,
     mediaUrl: 'https://picsum.photos/400/800?random=4',
     mediaType: 'image',
     createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
@@ -66,12 +47,7 @@ export const mockStories: Story[] = [
   // James's stories (2 stories)
   {
     id: 'james-1',
-    author: {
-      id: 'user-3',
-      name: 'james_w',
-      handle: '@james_w',
-      avatar: 'https://i.pravatar.cc/150?img=33',
-    },
+    author: getMockUserById('7')!,
     mediaUrl: 'https://picsum.photos/400/800?random=5',
     mediaType: 'image',
     createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
@@ -81,12 +57,7 @@ export const mockStories: Story[] = [
   },
   {
     id: 'james-2',
-    author: {
-      id: 'user-3',
-      name: 'james_w',
-      handle: '@james_w',
-      avatar: 'https://i.pravatar.cc/150?img=33',
-    },
+    author: getMockUserById('7')!,
     mediaUrl: 'https://picsum.photos/400/800?random=6',
     mediaType: 'image',
     createdAt: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
@@ -97,12 +68,7 @@ export const mockStories: Story[] = [
   // Emma's stories (4 stories)
   {
     id: 'emma-1',
-    author: {
-      id: 'user-4',
-      name: 'emma.design',
-      handle: '@emma.design',
-      avatar: 'https://i.pravatar.cc/150?img=45',
-    },
+    author: getMockUserById('4')!,
     mediaUrl: 'https://picsum.photos/400/800?random=7',
     mediaType: 'image',
     createdAt: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
@@ -112,12 +78,7 @@ export const mockStories: Story[] = [
   },
   {
     id: 'emma-2',
-    author: {
-      id: 'user-4',
-      name: 'emma.design',
-      handle: '@emma.design',
-      avatar: 'https://i.pravatar.cc/150?img=45',
-    },
+    author: getMockUserById('4')!,
     mediaUrl: 'https://picsum.photos/400/800?random=8',
     mediaType: 'image',
     createdAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
@@ -127,12 +88,7 @@ export const mockStories: Story[] = [
   },
   {
     id: 'emma-3',
-    author: {
-      id: 'user-4',
-      name: 'emma.design',
-      handle: '@emma.design',
-      avatar: 'https://i.pravatar.cc/150?img=45',
-    },
+    author: getMockUserById('4')!,
     mediaUrl: 'https://picsum.photos/400/800?random=9',
     mediaType: 'image',
     createdAt: new Date(Date.now() - 1000 * 60 * 16).toISOString(),
@@ -142,12 +98,7 @@ export const mockStories: Story[] = [
   },
   {
     id: 'emma-4',
-    author: {
-      id: 'user-4',
-      name: 'emma.design',
-      handle: '@emma.design',
-      avatar: 'https://i.pravatar.cc/150?img=45',
-    },
+    author: getMockUserById('4')!,
     mediaUrl: 'https://picsum.photos/400/800?random=10',
     mediaType: 'image',
     createdAt: new Date(Date.now() - 1000 * 60 * 14).toISOString(),
@@ -158,12 +109,7 @@ export const mockStories: Story[] = [
   // Mike's stories (1 story - viewed)
   {
     id: 'mike-1',
-    author: {
-      id: 'user-5',
-      name: 'mike_tech',
-      handle: '@mike_tech',
-      avatar: 'https://i.pravatar.cc/150?img=13',
-    },
+    author: getMockUserById('3')!,
     mediaUrl: 'https://picsum.photos/400/800?random=11',
     mediaType: 'image',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
@@ -174,12 +120,7 @@ export const mockStories: Story[] = [
   // Lisa's stories (2 stories - viewed)
   {
     id: 'lisa-1',
-    author: {
-      id: 'user-6',
-      name: 'lisa.codes',
-      handle: '@lisa.codes',
-      avatar: 'https://i.pravatar.cc/150?img=32',
-    },
+    author: getMockUserById('6')!,
     mediaUrl: 'https://picsum.photos/400/800?random=12',
     mediaType: 'image',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
@@ -189,12 +130,7 @@ export const mockStories: Story[] = [
   },
   {
     id: 'lisa-2',
-    author: {
-      id: 'user-6',
-      name: 'lisa.codes',
-      handle: '@lisa.codes',
-      avatar: 'https://i.pravatar.cc/150?img=32',
-    },
+    author: getMockUserById('6')!,
     mediaUrl: 'https://picsum.photos/400/800?random=13',
     mediaType: 'image',
     createdAt: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
@@ -205,12 +141,7 @@ export const mockStories: Story[] = [
   // David's stories (1 story)
   {
     id: 'david-1',
-    author: {
-      id: 'user-7',
-      name: 'david_k',
-      handle: '@david_k',
-      avatar: 'https://i.pravatar.cc/150?img=12',
-    },
+    author: getMockUserById('5')!,
     mediaUrl: 'https://picsum.photos/400/800?random=14',
     mediaType: 'image',
     createdAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),

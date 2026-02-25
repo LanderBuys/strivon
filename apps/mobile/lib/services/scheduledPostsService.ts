@@ -124,5 +124,5 @@ export async function deleteScheduledPost(id: string): Promise<void> {
  */
 export async function canUseAdvancedScheduling(): Promise<boolean> {
   const tier = await getSubscriptionTier();
-  return tier === 'pro-plus';
+  return tier === 'premium';
 }

@@ -10,12 +10,18 @@ interface TrendingSearchesProps {
 
 // Mock trending searches - in a real app, this would come from an API
 const trendingSearches = [
-  { query: 'React Native', trend: 'up', count: '12.5K' },
-  { query: 'AI Development', trend: 'up', count: '8.2K' },
-  { query: 'Startup Tips', trend: 'up', count: '6.7K' },
-  { query: 'Web Design', trend: 'up', count: '5.1K' },
-  { query: 'Productivity', trend: 'up', count: '4.3K' },
-  { query: 'Open Source', trend: 'up', count: '3.9K' },
+  { query: 'React Native', trend: 'up' as const, count: '12.5K' },
+  { query: 'AI Development', trend: 'up' as const, count: '8.2K' },
+  { query: 'Startup Tips', trend: 'up' as const, count: '6.7K' },
+  { query: 'Web Design', trend: 'up' as const, count: '5.1K' },
+  { query: 'Productivity', trend: 'up' as const, count: '4.3K' },
+  { query: 'Open Source', trend: 'up' as const, count: '3.9K' },
+  { query: 'Build in Public', trend: 'up' as const, count: '9.1K' },
+  { query: 'Product Management', trend: 'stable' as const, count: '5.4K' },
+  { query: 'UX Design', trend: 'up' as const, count: '4.8K' },
+  { query: 'TypeScript', trend: 'up' as const, count: '7.2K' },
+  { query: 'No Code', trend: 'down' as const, count: '3.2K' },
+  { query: 'Indie Hacker', trend: 'up' as const, count: '6.0K' },
 ];
 
 const trendingHashtags = [
@@ -27,6 +33,11 @@ const trendingHashtags = [
   '#productivity',
   '#tech',
   '#innovation',
+  '#buildinpublic',
+  '#reactnative',
+  '#typescript',
+  '#uxdesign',
+  '#indiehacker',
 ];
 
 export function TrendingSearches({ onSelectQuery }: TrendingSearchesProps) {

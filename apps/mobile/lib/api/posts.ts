@@ -19,7 +19,27 @@ export async function getFeedPosts(
   filter?: 'all' | 'media' | 'text' | 'links'
 ) {
   const db = getFirestoreDb();
-  if (!db) return { data: [], hasMore: false };
+
+  function applyMocksAndSort(): { data: Post[]; hasMore: boolean } {
+    let list = [...mockPosts];
+    if (sort === 'popular') list.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
+    else if (sort === 'trending') list.sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
+    else list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (filter && filter !== 'all') {
+      list = list.filter(post => {
+        if (filter === 'media' && post.media && post.media.length > 0) return true;
+        if (filter === 'text' && (!post.media || post.media.length === 0)) return true;
+        if (filter === 'links' && post.content && post.content.includes('http')) return true;
+        return false;
+      });
+    }
+    const start = (page - 1) * limit;
+    const data = list.slice(start, start + limit);
+    return { data, hasMore: start + data.length < list.length };
+  }
+
+  if (!db) return applyMocksAndSort();
+
   const uid = getCurrentUserIdOrFallback();
   const result = await getFeedPostsFirestore(tab, page, limit, uid);
   if (filter && filter !== 'all') {
@@ -30,13 +50,17 @@ export async function getFeedPosts(
       return false;
     });
   }
+  // When Firestore returns empty (e.g. new project), show mocks so the app isn't empty
+  if (page === 1 && result.data.length === 0) return applyMocksAndSort();
   return result;
 }
 
 export async function getPostById(id: string) {
   const db = getFirestoreDb();
-  if (!db) return null;
-  return getPostByIdFirestore(id);
+  const fromMock = mockPosts.find(p => p.id === id) ?? null;
+  if (!db) return fromMock;
+  const fromDb = await getPostByIdFirestore(id);
+  return fromDb ?? fromMock;
 }
 
 export async function createPost(data: any, onMediaProgress?: (progress: number) => void): Promise<Post> {

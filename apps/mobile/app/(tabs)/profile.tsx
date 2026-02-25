@@ -8,10 +8,11 @@ import { User, Post } from '@/types/post';
 import { ThemedText } from '@/components/themed-text';
 import { ProfileHeader, BANNER_HEIGHT } from '@/components/profile/ProfileHeader';
 import { ProfileStats } from '@/components/profile/ProfileStats';
-import { ProfileTabs } from '@/components/profile/ProfileTabs';
+import { type ProfileViewMode } from '@/components/profile/ProfileTabs';
 import { ProfileEditModal } from '@/components/profile/ProfileEditModal';
 import { ProfileCustomizationModal } from '@/components/profile/ProfileCustomizationModal';
 import { PostCard } from '@/components/feed/PostCard';
+import { ProfilePostGrid } from '@/components/profile/ProfilePostGrid';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LoadingOverlay } from '@/components/ui/LoadingOverlay';
@@ -39,6 +40,7 @@ export default function ProfileScreen() {
   const [user, setUser] = useState<(User & { bio?: string; banner?: string | null; occupation?: string; country?: string; joinDate?: string }) | null>(null);
   const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [activeTab, setActiveTab] = useState<ProfileTabType>('posts');
+  const [viewMode, setViewMode] = useState<ProfileViewMode>('grid');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export default function ProfileScreen() {
     postCardTextColor?: string;
   }>({});
   const [customizationKey, setCustomizationKey] = useState(0);
-  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'pro-plus'>('free');
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'premium'>('free');
   
   // Active status and streak
   const [activeStatus] = useState(false);
@@ -72,7 +74,7 @@ export default function ProfileScreen() {
   const loadSubscriptionTier = async () => {
     try {
       const tier = await getSubscriptionTier();
-      setSubscriptionTier(tier); // 'free' | 'pro' | 'pro-plus'
+      setSubscriptionTier(tier); // 'free' | 'pro' | 'premium'
     } catch (error) {
       console.error('Error loading subscription tier:', error);
       setSubscriptionTier('free');
@@ -81,15 +83,15 @@ export default function ProfileScreen() {
 
   const handleToggleSubscription = async () => {
     haptics.medium();
-    let newTier: 'pro' | 'pro-plus' | undefined;
+    let newTier: 'pro' | 'premium' | undefined;
     let tierName: string;
     
-    // Cycle through: free → pro → pro-plus → free
+    // Cycle through: free → pro → premium → free
     if (subscriptionTier === 'free' || !subscriptionTier) {
       newTier = 'pro';
       tierName = 'Pro';
     } else if (subscriptionTier === 'pro') {
-      newTier = 'pro-plus';
+      newTier = 'premium';
       tierName = PREMIUM_TIER_DISPLAY_NAME;
     } else {
       newTier = undefined; // Back to free
@@ -483,6 +485,8 @@ export default function ProfileScreen() {
               user={user}
               activeStatus={activeStatus}
               activeStreak={activeStreak}
+              showPremiumBadge={subscriptionTier === 'pro' || subscriptionTier === 'premium'}
+              premiumBadgeTier={subscriptionTier === 'premium' ? 'premium' : subscriptionTier === 'pro' ? 'pro' : undefined}
               pageCustomization={pageCustomization}
             />
             <View style={styles.headerButtons}>
@@ -511,16 +515,8 @@ export default function ProfileScreen() {
               textColor={pageTextColor}
               accentColor={pageAccentColor}
             />
-            <ProfileTabs
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              accentColor={pageAccentColor}
-              textColor={pageTextColor}
-              counts={{
-                posts: postsCount,
-                saved: savedCount,
-              }}
-            />
+            <View style={[styles.headerDivider, { backgroundColor: hexToRgba(colors.text, 0.15) }]} />
+            <View style={styles.headerBottomSpacer} />
           </View>
         </View>
       ),
@@ -587,77 +583,74 @@ export default function ProfileScreen() {
     <ErrorBoundary>
     <View style={[styles.container, { backgroundColor: pageBackgroundColor }]}>
       <SafeAreaView style={[styles.safeAreaContent, { backgroundColor: pageBackgroundColor }]} edges={['top']}>
-        <FlatList
-        data={filteredPosts}
-        keyExtractor={(item, index) => item?.id || `post-${index}`}
-        renderItem={({ item }) => {
-          // Aggressive validation
-          if (!item || !item.id || !item.author || !item.author.id || !item.author.name) {
-            return null;
-          }
-          // Use the custom post card background color/image/text color if set
-          // Pass undefined if not set to allow PostCard to use defaults
-          // If the field exists but is empty string, pass null to signal clear
-          const postBackgroundColor = pageCustomization.postCardBackgroundColor === '' 
-            ? null 
-            : (pageCustomization.postCardBackgroundColor || undefined);
-          const postBackgroundImage = pageCustomization.postCardBackgroundImage === '' 
-            ? null 
-            : (pageCustomization.postCardBackgroundImage || undefined);
-          const postCardTextColor = pageCustomization.postCardTextColor === '' 
-            ? null 
-            : (pageCustomization.postCardTextColor || undefined);
-          
-          return (
-            <PostCard
-              key={`post-${item.id}-${customizationKey}`}
-              post={item}
-              onLike={() => handleLike(item.id)}
-              onSave={() => handleSave(item.id)}
-              onPollVote={(optionId) => handlePollVote(item.id, optionId)}
-              backgroundColor={postBackgroundColor}
-              backgroundImage={postBackgroundImage}
-              textColor={postCardTextColor}
-            />
-          );
-        }}
-        ListHeaderComponent={listHeader}
-        contentContainerStyle={[
-          styles.listContent,
-          { backgroundColor: pageBackgroundColor, flexGrow: 1 },
-        ]}
-        style={[styles.list, { zIndex: 10, backgroundColor: pageBackgroundColor }]}
-        removeClippedSubviews={false}
-        nestedScrollEnabled={true}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={pageAccentColor}
-            colors={[pageAccentColor]}
+        {viewMode === 'grid' ? (
+          <ProfilePostGrid
+            posts={filteredPosts}
+            onLike={handleLike}
+            onSave={handleSave}
+            onPollVote={handlePollVote}
+            ListHeaderComponent={listHeader}
+            contentContainerStyle={[styles.listContent, { backgroundColor: pageBackgroundColor, flexGrow: 1 }]}
+            placeholderBackground={pageCustomization.postCardBackgroundColor || undefined}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={pageAccentColor} colors={[pageAccentColor]} />
+            }
+            ListEmptyComponent={
+              error && filteredPosts.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <ThemedText style={{ color: colors.error, marginBottom: Spacing.md }}>{error}</ThemedText>
+                  <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={() => { setError(null); loadPosts(true); }} activeOpacity={0.7}>
+                    <Text style={styles.retryButtonText}>Retry</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <EmptyState {...getEmptyState()} />
+              )
+            }
           />
-        }
-        ListEmptyComponent={
-          error && filteredPosts.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <ThemedText style={{ color: colors.error, marginBottom: Spacing.md }}>{error}</ThemedText>
-              <TouchableOpacity
-                style={[styles.retryButton, { backgroundColor: colors.primary }]}
-                onPress={() => {
-                  setError(null);
-                  loadPosts(true);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.retryButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <EmptyState {...getEmptyState()} />
-          )
-        }
-      />
+        ) : (
+          <FlatList
+            data={filteredPosts}
+            keyExtractor={(item, index) => item?.id || `post-${index}`}
+            renderItem={({ item }) => {
+              if (!item?.id || !item.author?.id || !item.author?.name) return null;
+              const postBg = pageCustomization.postCardBackgroundColor === '' ? null : (pageCustomization.postCardBackgroundColor || undefined);
+              const postBgImg = pageCustomization.postCardBackgroundImage === '' ? null : (pageCustomization.postCardBackgroundImage || undefined);
+              const postText = pageCustomization.postCardTextColor === '' ? null : (pageCustomization.postCardTextColor || undefined);
+              return (
+                <PostCard
+                  key={`post-${item.id}-${customizationKey}`}
+                  post={item}
+                  onLike={() => handleLike(item.id)}
+                  onSave={() => handleSave(item.id)}
+                  onPollVote={(optionId) => handlePollVote(item.id, optionId)}
+                  backgroundColor={postBg}
+                  backgroundImage={postBgImg}
+                  textColor={postText}
+                />
+              );
+            }}
+            ListHeaderComponent={listHeader}
+            contentContainerStyle={[styles.listContent, { backgroundColor: pageBackgroundColor, flexGrow: 1 }]}
+            style={[styles.list, { zIndex: 10, backgroundColor: pageBackgroundColor }]}
+            removeClippedSubviews={false}
+            nestedScrollEnabled={true}
+            showsVerticalScrollIndicator={false}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={pageAccentColor} colors={[pageAccentColor]} />}
+            ListEmptyComponent={
+              error && filteredPosts.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <ThemedText style={{ color: colors.error, marginBottom: Spacing.md }}>{error}</ThemedText>
+                  <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={() => { setError(null); loadPosts(true); }} activeOpacity={0.7}>
+                    <Text style={styles.retryButtonText}>Retry</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <EmptyState {...getEmptyState()} />
+              )
+            }
+          />
+        )}
       <ProfileEditModal
         visible={showEditModal}
         user={user}
@@ -705,6 +698,32 @@ export default function ProfileScreen() {
               <IconSymbol name="create-outline" size={20} color={pageAccentColor} />
               <Text style={[styles.menuItemText, { color: colors.text }]}>Edit Profile</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                haptics.selection();
+                setShowMenu(false);
+                setActiveTab('posts');
+              }}
+              activeOpacity={0.7}
+              accessibilityLabel="Your posts"
+              accessibilityRole="button">
+              <Ionicons name="grid-outline" size={20} color={pageAccentColor} />
+              <Text style={[styles.menuItemText, { color: colors.text }]}>Your posts</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                haptics.selection();
+                setShowMenu(false);
+                setActiveTab('saved');
+              }}
+              activeOpacity={0.7}
+              accessibilityLabel="Saved posts"
+              accessibilityRole="button">
+              <Ionicons name="bookmark-outline" size={20} color={pageAccentColor} />
+              <Text style={[styles.menuItemText, { color: colors.text }]}>Saved posts</Text>
+            </TouchableOpacity>
             {canCustomize && (
               <TouchableOpacity
                 style={styles.menuItem}
@@ -735,7 +754,7 @@ export default function ProfileScreen() {
                 <Text style={[styles.menuItemText, { color: colors.text }]}>Analytics</Text>
               </TouchableOpacity>
             )}
-            {subscriptionTier === 'pro-plus' && (
+            {subscriptionTier === 'premium' && (
               <>
                 <TouchableOpacity
                   style={styles.menuItem}
@@ -866,15 +885,24 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     width: '100%',
-    paddingHorizontal: 0,
+    paddingHorizontal: Spacing.lg,
     paddingTop: 0,
     paddingBottom: 0,
+  },
+  headerDivider: {
+    height: 1,
+    width: '100%',
+    marginTop: 0,
+  },
+  headerBottomSpacer: {
+    height: Spacing.sm,
+    width: '100%',
   },
   list: {
     flex: 1,
   },
   listContent: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.xl + Spacing.lg,
   },
@@ -889,8 +917,8 @@ const styles = StyleSheet.create({
   },
   headerButtons: {
     position: 'absolute',
-    top: Spacing.md + 8,
-    right: Spacing.md + 8,
+    top: Spacing.sm,
+    right: Spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,

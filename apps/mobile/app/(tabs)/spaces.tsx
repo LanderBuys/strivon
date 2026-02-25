@@ -322,10 +322,7 @@ export default function SpacesScreen() {
 
   const handleSpacePress = useCallback((space: Space) => {
     haptics.selection();
-    router.push({
-      pathname: '/space/[id]',
-      params: { id: space.id },
-    });
+    router.push(`/space/${space.id}`);
   }, [router, haptics]);
 
   const handleLongPress = useCallback((space: Space) => {

@@ -32,6 +32,7 @@ import { sortPostsUnseenFirst } from '@/lib/utils/feedUtils';
 import { addReport } from '@/lib/services/reportQueueService';
 import { getRemovedPostIds } from '@/lib/services/reportQueueService';
 import { useCurrentUserId } from '@/hooks/useCurrentUserId';
+import { checkAndPublishScheduledPosts } from '@/lib/services/scheduledPostsService';
 
 const SKELETON_COUNT = 3;
 const FEED_SORT_KEY = '@strivon/feed_sort';
@@ -179,6 +180,7 @@ export default function FeedScreen() {
   );
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const seenIdsRef = useRef<Set<string>>(new Set());
+  const [, setSeenTick] = useState(0); // bump to re-render when a post is marked seen (view indicator)
   const viewableTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const prevViewableIdsRef = useRef<Set<string>>(new Set());
 
@@ -421,6 +423,9 @@ export default function FeedScreen() {
         resetHeaderState();
       });
       
+      // Publish any scheduled posts that are due (fire-and-forget)
+      checkAndPublishScheduledPosts().catch(() => {});
+
       // Only refresh posts when returning to feed (not on first mount; useEffect handles initial load)
       if (hasReturnedToFeedRef.current) {
         loadPosts(true);
@@ -584,6 +589,8 @@ export default function FeedScreen() {
       if (viewableTimeoutsRef.current.has(id)) return;
       const t = setTimeout(() => {
         addSeenPost(id);
+        seenIdsRef.current.add(id);
+        setSeenTick((prev) => prev + 1); // re-render so FeedPostRow shows seen (dimmed) state
         viewableTimeoutsRef.current.delete(id);
       }, SEEN_VIEWABLE_MS);
       viewableTimeoutsRef.current.set(id, t);

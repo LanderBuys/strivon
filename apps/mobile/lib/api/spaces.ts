@@ -10,6 +10,7 @@ import {
   leaveSpaceFirestore,
   getSpaceMembersFirestore,
 } from '@/lib/firestore/spaces';
+import { mockSpaces as mockSpacesList } from '@/lib/mocks/spaces';
 
 const MOCK_SPACE_ICON_VERSION = 'v3';
 
@@ -35,15 +36,26 @@ function getMockSpaceIconImage(space: Pick<Space, 'id' | 'name'>) {
 
 const SPACES_PAGE_SIZE = 20;
 
-export async function getSpaces(): Promise<Space[]> {
-  const db = getFirestoreDb();
-  if (!db) return [];
-  const uid = getCurrentUserIdOrFallback();
-  const spaces = await getSpacesFirestore(uid);
-  return spaces.map((s) => ({
+function getMockSpacesWithIcons(): Space[] {
+  return mockSpacesList.map((s) => ({
     ...s,
     iconImage: s.iconImage || getMockSpaceIconImage({ id: s.id, name: s.name }),
   }));
+}
+
+export async function getSpaces(): Promise<Space[]> {
+  const db = getFirestoreDb();
+  if (db) {
+    const uid = getCurrentUserIdOrFallback();
+    const spaces = await getSpacesFirestore(uid);
+    if (spaces.length > 0) {
+      return spaces.map((s) => ({
+        ...s,
+        iconImage: s.iconImage || getMockSpaceIconImage({ id: s.id, name: s.name }),
+      }));
+    }
+  }
+  return getMockSpacesWithIcons();
 }
 
 export interface GetSpacesPageResult {
@@ -59,11 +71,13 @@ export async function getSpacesPaginated(offset: number, limit: number = SPACES_
 
 export async function getSpaceById(id: string): Promise<Space | null> {
   const db = getFirestoreDb();
-  if (!db) return null;
+  const fromMock = mockSpacesList.find((s) => s.id === id) ?? null;
+  const withIcon = fromMock ? { ...fromMock, iconImage: fromMock.iconImage || getMockSpaceIconImage({ id: fromMock.id, name: fromMock.name }) } : null;
+  if (!db) return withIcon;
   const uid = getCurrentUserIdOrFallback();
   const space = await getSpaceByIdFirestore(id, uid);
-  if (!space) return null;
-  return { ...space, iconImage: space.iconImage || getMockSpaceIconImage({ id: space.id, name: space.name }) };
+  if (space) return { ...space, iconImage: space.iconImage || getMockSpaceIconImage({ id: space.id, name: space.name }) };
+  return withIcon;
 }
 
 export async function joinSpace(id: string): Promise<void> {

@@ -86,7 +86,7 @@ export function ProfileStats({
   };
 
   return (
-    <View style={[styles.container, { borderBottomColor: dividerColor }]}>
+    <View style={[styles.container, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: dividerColor }]}>
       <StatItem 
         value={posts} 
         label="Posts" 
@@ -113,34 +113,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg + 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
   },
   stat: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    minHeight: 68,
     justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+    minHeight: 52,
   },
   separator: {
     width: StyleSheet.hairlineWidth,
-    height: 36,
-    marginHorizontal: Spacing.sm,
+    height: 28,
+    marginHorizontal: Spacing.xs,
   },
   number: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 2,
     letterSpacing: -0.3,
-    lineHeight: 26,
+    lineHeight: 22,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '400',
+    fontSize: 13,
+    fontWeight: '500',
     letterSpacing: -0.1,
   },
 });

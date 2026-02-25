@@ -35,6 +35,14 @@ export function LocationPicker({ location, onLocationChange }: LocationPickerPro
     'Chicago, IL',
     'Boston, MA',
     'Seattle, WA',
+    'Austin, TX',
+    'Denver, CO',
+    'Miami, FL',
+    'London, UK',
+    'Berlin, Germany',
+    'Toronto, Canada',
+    'Sydney, Australia',
+    'Remote',
   ];
 
   if (location) {

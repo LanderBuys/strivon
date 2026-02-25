@@ -54,3 +54,9 @@ export function getFirebaseFunctions(): Functions | null {
   functions = getFunctions(a);
   return functions;
 }
+
+/** Current signed-in user id, or null. Use in API/data layer. */
+export function getCurrentUserId(): string | null {
+  const a = getFirebaseAuth();
+  return a?.currentUser?.uid ?? null;
+}

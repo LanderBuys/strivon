@@ -1,6 +1,6 @@
 import { getUserMetrics } from './userMetricsService';
 
-export type SubscriptionTier = 'free' | 'pro' | 'pro-plus';
+export type SubscriptionTier = 'free' | 'pro' | 'premium';
 
 export interface SubscriptionFeatures {
   canSchedulePosts: boolean;
@@ -19,7 +19,7 @@ export interface SubscriptionFeatures {
   maxStoriesPerDay: number; // 1 for free, -1 for unlimited
   storyExpirationHours: number; // 24/48/168
   maxConversations: number; // 5 for free, -1 for unlimited
-  maxGroupChatMembers: number; // 0 for free, 50 for Pro, 500 for Pro+
+  maxGroupChatMembers: number; // 0 for free, 50 for Pro, 500 for Premium
   maxDrafts: number; // 1 for free, -1 for unlimited
   canUseAdvancedSearch: boolean;
 }
@@ -33,7 +33,7 @@ export const PREMIUM_TIER_DISPLAY_NAME = 'Premium';
 export async function getSubscriptionTier(): Promise<SubscriptionTier> {
   const metrics = await getUserMetrics();
   if (metrics.subscriptionTier === 'pro') return 'pro';
-  if (metrics.subscriptionTier === 'pro-plus') return 'pro-plus';
+  if (metrics.subscriptionTier === 'premium' || metrics.subscriptionTier === 'pro-plus') return 'premium';
   return 'free';
 }
 
@@ -44,7 +44,7 @@ export async function getSubscriptionFeatures(): Promise<SubscriptionFeatures> {
   const tier = await getSubscriptionTier();
   
   switch (tier) {
-    case 'pro-plus':
+    case 'premium':
       return {
         canSchedulePosts: true,
         canPinPosts: true,

@@ -10,6 +10,7 @@ import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { getSubscriptionTier } from '@/lib/services/subscriptionService';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
+import { mockTrendingTopics, mockBestTimesToPost } from '@/lib/mocks/contentIdeas';
 
 interface TrendingTopic {
   id: string;
@@ -29,7 +30,8 @@ export default function ContentIdeasScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const router = useRouter();
   const haptics = useHapticFeedback();
-  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'pro-plus'>('free');
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'premium'>('free');
+  const [tierLoaded, setTierLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [trendingTopics, setTrendingTopics] = useState<TrendingTopic[]>([]);
   const [bestTimes, setBestTimes] = useState<BestTimeToPost[]>([]);
@@ -44,28 +46,12 @@ export default function ContentIdeasScreen() {
   const loadSubscriptionTier = async () => {
     const tier = await getSubscriptionTier();
     setSubscriptionTier(tier);
+    setTierLoaded(true);
   };
 
   const loadContentIdeas = async () => {
-    // Mock trending topics
-    const topics: TrendingTopic[] = [
-      { id: '1', topic: '#TradingTips', engagement: 12500, trend: 'up' },
-      { id: '2', topic: '#Dropshipping', engagement: 9800, trend: 'up' },
-      { id: '3', topic: '#Entrepreneurship', engagement: 15200, trend: 'stable' },
-      { id: '4', topic: '#BusinessGrowth', engagement: 8700, trend: 'down' },
-      { id: '5', topic: '#StartupLife', engagement: 11200, trend: 'up' },
-    ];
-    setTrendingTopics(topics);
-
-    // Mock best times to post
-    const times: BestTimeToPost[] = [
-      { day: 'Monday', hour: 9, engagement: 450 },
-      { day: 'Tuesday', hour: 14, engagement: 520 },
-      { day: 'Wednesday', hour: 10, engagement: 480 },
-      { day: 'Thursday', hour: 15, engagement: 510 },
-      { day: 'Friday', hour: 11, engagement: 490 },
-    ];
-    setBestTimes(times);
+    setTrendingTopics(mockTrendingTopics as TrendingTopic[]);
+    setBestTimes(mockBestTimesToPost as BestTimeToPost[]);
   };
 
   const onRefresh = useCallback(() => {
@@ -74,7 +60,24 @@ export default function ContentIdeasScreen() {
     setTimeout(() => setRefreshing(false), 1000);
   }, []);
 
-  if (subscriptionTier !== 'pro-plus') {
+  // Content ideas: Pro and Premium per feature set. Wait for tier to load to avoid flash.
+  if (!tierLoaded) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <ThemedText type="title" style={styles.title}>Content Ideas</ThemedText>
+          <View style={styles.placeholder} />
+        </View>
+        <View style={[styles.lockedContainer, { justifyContent: 'center' }]}>
+          <ThemedText style={[styles.lockedMessage, { color: colors.secondary }]}>Loading...</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+  if (subscriptionTier === 'free') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
@@ -90,13 +93,13 @@ export default function ContentIdeasScreen() {
             Content Ideas Dashboard
           </ThemedText>
           <ThemedText style={[styles.lockedMessage, { color: colors.secondary }]}>
-            Get trending topics, best times to post, and content suggestions. Available for Premium subscribers.
+            Get trending topics, best times to post, and content suggestions. Available with Pro or Premium.
           </ThemedText>
           <TouchableOpacity
             style={[styles.upgradeButton, { backgroundColor: colors.primary }]}
             onPress={() => router.push('/settings/subscription-info')}
           >
-            <Text style={styles.upgradeButtonText}>Upgrade to Premium</Text>
+            <Text style={styles.upgradeButtonText}>Upgrade to Pro or Premium</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

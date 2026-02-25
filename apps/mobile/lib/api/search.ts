@@ -1,30 +1,7 @@
 import { Post, Space, User } from '@/types/post';
 import { mockPosts } from '@/lib/mocks/posts';
-
-// Mock users for search (single source of truth)
-const mockUsers: User[] = [
-  { id: '1', name: 'Alex Chen', handle: '@alex', avatar: 'https://i.pravatar.cc/150?img=12', bio: 'Full-stack developer passionate about React Native', label: 'Developer' },
-  { id: '2', name: 'Sarah Johnson', handle: '@sarah', avatar: 'https://i.pravatar.cc/150?img=47', bio: 'UI/UX Designer creating beautiful experiences', label: 'Designer' },
-  { id: '3', name: 'Mike Rodriguez', handle: '@mike', avatar: 'https://i.pravatar.cc/150?img=33', bio: 'Product Manager at tech startup', label: 'Product Manager' },
-  { id: '4', name: 'Emma Wilson', handle: '@emma', avatar: 'https://i.pravatar.cc/150?img=45', bio: 'Software engineer building scalable systems', label: 'Engineer' },
-  { id: '5', name: 'David Kim', handle: '@david', avatar: 'https://i.pravatar.cc/150?img=13', bio: 'Founder & CEO of innovative startup', label: 'Founder' },
-  { id: '6', name: 'Lisa Park', handle: '@lisa', avatar: 'https://i.pravatar.cc/150?img=32', bio: 'Mobile developer specializing in iOS and Android', label: 'Developer' },
-  { id: '7', name: 'James Taylor', handle: '@james', avatar: 'https://i.pravatar.cc/150?img=15', bio: 'Creative designer and illustrator', label: 'Designer' },
-  { id: '8', name: 'Maria Garcia', handle: '@maria', avatar: 'https://i.pravatar.cc/150?img=20', bio: 'Backend engineer working on distributed systems', label: 'Engineer' },
-  { id: '9', name: 'Chris Anderson', handle: '@chris', avatar: 'https://i.pravatar.cc/150?img=25', bio: 'Product strategist and growth hacker', label: 'Product Manager' },
-  { id: '10', name: 'Sophie Brown', handle: '@sophie', avatar: 'https://i.pravatar.cc/150?img=30', bio: 'Frontend developer and React enthusiast', label: 'Developer' },
-];
-
-const mockSpaces: Space[] = [
-  { id: '1', name: 'React Native', description: 'React Native development community', memberCount: 1250, channels: [{ id: '1-1', name: 'general' }] },
-  { id: '2', name: 'Startups', description: 'Startup discussions and entrepreneurship', memberCount: 890, channels: [{ id: '2-1', name: 'general' }] },
-  { id: '3', name: 'Design', description: 'Design inspiration and UI/UX tips', memberCount: 2100, channels: [{ id: '3-1', name: 'general' }] },
-  { id: '4', name: 'AI & ML', description: 'Artificial Intelligence and Machine Learning', memberCount: 1500, channels: [{ id: '4-1', name: 'general' }] },
-  { id: '5', name: 'Web Development', description: 'Web development discussions', memberCount: 980, channels: [{ id: '5-1', name: 'general' }] },
-  { id: '6', name: 'Mobile Development', description: 'Mobile app development', memberCount: 1100, channels: [{ id: '6-1', name: 'general' }] },
-  { id: '7', name: 'Product Management', description: 'Product management best practices', memberCount: 1200, channels: [{ id: '7-1', name: 'general' }] },
-  { id: '8', name: 'Marketing', description: 'Marketing strategies and growth', memberCount: 850, channels: [{ id: '8-1', name: 'general' }] },
-];
+import { mockUsers } from '@/lib/mocks/users';
+import { mockSpaces } from '@/lib/mocks/spaces';
 
 function normalizeQuery(q: string): string {
   return q.trim().toLowerCase().replace(/^[@#]/, '');

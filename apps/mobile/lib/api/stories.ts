@@ -8,6 +8,7 @@ import {
   createStoryFirestore,
   deleteStoryFirestore,
 } from '@/lib/firestore/stories';
+import { mockStories } from '@/lib/mocks/stories';
 
 const STORIES_TODAY_KEY = '@strivon_stories_today';
 const STORIES_DATE_KEY = '@strivon_stories_date';
@@ -31,18 +32,20 @@ export async function getStories(): Promise<Story[]> {
   const db = getFirestoreDb();
   if (db) {
     const uid = getCurrentUserIdOrFallback();
-    return getStoriesFirestore(uid);
+    const fromDb = await getStoriesFirestore(uid);
+    if (fromDb.length > 0) return fromDb;
   }
-  return [];
+  return mockStories;
 }
 
 export async function getStoryById(id: string): Promise<Story | null> {
   const db = getFirestoreDb();
   if (db) {
     const uid = getCurrentUserIdOrFallback();
-    return getStoryByIdFirestore(id, uid);
+    const fromDb = await getStoryByIdFirestore(id, uid);
+    if (fromDb) return fromDb;
   }
-  return null;
+  return mockStories.find(s => s.id === id) ?? null;
 }
 
 export async function getStoriesToday(): Promise<number> {

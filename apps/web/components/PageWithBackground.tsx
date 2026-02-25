@@ -11,7 +11,7 @@ export function PageWithBackground({ children }: { children: ReactNode }) {
         fetchPriority="high"
         decoding="async"
       />
-      <div className="absolute inset-0 bg-white/70 dark:bg-zinc-950/75" aria-hidden />
+      <div className="absolute inset-0 bg-white/50 dark:bg-zinc-950/60" aria-hidden />
       <div className="relative">{children}</div>
     </div>
   );

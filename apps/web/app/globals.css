@@ -1,8 +1,49 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Strivon brand — dark blue */
+  --background: #F2F3F5;
+  --foreground: #1C1C1E;
+  --accent: #1e40af;
+  --accent-hover: #1d4ed8;
+  --accent-muted: rgba(30, 64, 175, 0.12);
+  --accent-subtle: rgba(30, 64, 175, 0.06);
+  --card: #ffffff;
+  --card-border: rgba(0, 0, 0, 0.06);
+  --surface: #ffffff;
+  --muted: #5C5C6D;
+  --muted-foreground: #5C5C6D;
+  --radius: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.06), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  --shadow-hover: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
+  --ring: 0 0 0 3px rgba(30, 64, 175, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Strivon brand dark — dark blue */
+    --background: #0C0C0E;
+    --foreground: #F5F5F7;
+    --accent: #3b82f6;
+    --accent-hover: #60a5fa;
+    --accent-muted: rgba(59, 130, 246, 0.15);
+    --accent-subtle: rgba(59, 130, 246, 0.08);
+    --card: #161618;
+    --card-border: rgba(255, 255, 255, 0.06);
+    --surface: #161618;
+    --muted: #98989F;
+    --muted-foreground: #98989F;
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.2);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.15), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-hover: 0 20px 25px -5px rgb(0 0 0 / 0.25);
+    --ring: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  }
 }
 
 @theme inline {
@@ -10,13 +51,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 html {
@@ -158,7 +192,51 @@ button:focus-visible,
   transition: box-shadow 0.2s var(--ease-smooth), border-color 0.2s var(--ease-smooth);
 }
 
-/* Scroll-triggered reveal — elements animate when they enter the viewport */
+/* App shell utilities */
+.app-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.25s var(--ease-smooth), border-color 0.25s var(--ease-smooth), transform 0.25s var(--ease-out-soft);
+}
+.app-card:hover {
+  box-shadow: var(--shadow-md);
+}
+.app-card:focus-within {
+  box-shadow: var(--shadow-md), var(--ring);
+}
+.app-btn-primary {
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  border-radius: var(--radius);
+  transition: background 0.2s var(--ease-smooth), transform 0.05s ease, box-shadow 0.2s var(--ease-smooth);
+}
+.app-btn-primary:hover {
+  background: var(--accent-hover);
+}
+.app-btn-primary:active {
+  transform: scale(0.98);
+}
+.dark .app-btn-primary {
+  background: var(--accent);
+  color: #0f172a;
+}
+.dark .app-btn-primary:hover {
+  background: var(--accent-hover);
+  color: #0f172a;
+}
+/* Glass panel for auth / overlays */
+.app-glass {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(12px);
+}
+
+/* Scroll-triggered reveal */
 .scroll-reveal {
   transition-property: opacity, transform;
   transition-duration: 0.7s;

@@ -9,7 +9,7 @@ export interface PremiumBoostResult {
   postId: string;
   timestamp: string;
   reachImprovement: number; // Percentage
-  boostType: 'pro' | 'pro-plus';
+  boostType: 'pro' | 'premium';
   duration: number; // Hours
 }
 
@@ -69,7 +69,7 @@ export async function canUsePremiumBoost(): Promise<boolean> {
 export async function applyPremiumBoost(postId: string, baseReach: number): Promise<PremiumBoostResult> {
   const tier = await getSubscriptionTier();
   if (tier === 'free') {
-    throw new Error('Premium boosts are only available for Pro and Pro+ subscribers');
+    throw new Error('Premium boosts are only available for Pro and Premium subscribers');
   }
 
   await resetMonthlyCreditsIfNeeded();
@@ -85,15 +85,15 @@ export async function applyPremiumBoost(postId: string, baseReach: number): Prom
   // Get subscription features for boost parameters
   const features = await getSubscriptionFeatures();
   
-  // Calculate reach improvement (25% for Pro, 30% for Pro+)
-  const improvement = tier === 'pro-plus' ? 30 : 25;
+  // Calculate reach improvement (25% for Pro, 30% for Premium)
+  const improvement = tier === 'premium' ? 30 : 25;
 
   const boostResult: PremiumBoostResult = {
     postId,
     timestamp: new Date().toISOString(),
     reachImprovement: improvement,
-    boostType: tier === 'pro-plus' ? 'pro-plus' : 'pro',
-    duration: features.boostDuration, // 24h for Pro, 48h for Pro+
+    boostType: tier === 'premium' ? 'premium' : 'pro',
+    duration: features.boostDuration, // 24h for Pro, 48h for Premium
   };
 
   // Save to history

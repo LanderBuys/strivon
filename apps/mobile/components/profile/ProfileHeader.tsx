@@ -15,11 +15,11 @@ import { FollowButton } from './FollowButton';
 import { getSubscriptionTier } from '@/lib/services/subscriptionService';
 
 const screenWidth = Dimensions.get('window').width;
-// Slightly more compact dimensions to keep the profile looking clean and professional
-export const BANNER_HEIGHT = 170;
-const AVATAR_SIZE = 100; 
+// Compact dimensions so profile content isn’t pushed down too much
+export const BANNER_HEIGHT = 140;
+const AVATAR_SIZE = 100;
 const AVATAR_OFFSET = 50; // How much avatar overlaps the banner
-const USER_INFO_TOP_PADDING = Spacing.xs; // Match profile page spacing
+const USER_INFO_TOP_PADDING = 0;
 
 // Helper to check if URI is a video
 const isVideoUri = (uri: string | null | undefined): boolean => {
@@ -85,6 +85,12 @@ interface ProfileHeaderProps {
   activeStatus?: boolean;
   activeStreak?: number;
   showFollowButton?: boolean;
+  /** When true, do not render follow/message buttons in header; parent will render them below stats. */
+  followButtonBelowStats?: boolean;
+  /** When true, show checkmark (Pro/Premium badge) next to name. Use for current user when tier is pro/premium. */
+  showPremiumBadge?: boolean;
+  /** When showPremiumBadge: 'premium' = blue (Premium), 'pro' = white (Pro). */
+  premiumBadgeTier?: 'pro' | 'premium';
   onFollowChange?: (isFollowing: boolean) => void;
   pageCustomization?: {
     backgroundColor?: string;
@@ -122,7 +128,7 @@ const formatJoinDate = (dateString?: string) => {
   }
 }; //end of formatjoindate
 
-export function ProfileHeader({ user, activeStatus = false, activeStreak = 0, showFollowButton = false, onFollowChange, pageCustomization: propPageCustomization }: ProfileHeaderProps) {
+export function ProfileHeader({ user, activeStatus = false, activeStreak = 0, showFollowButton = false, followButtonBelowStats = false, showPremiumBadge = false, premiumBadgeTier, onFollowChange, pageCustomization: propPageCustomization }: ProfileHeaderProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const router = useRouter();
@@ -133,7 +139,7 @@ export function ProfileHeader({ user, activeStatus = false, activeStreak = 0, sh
     accentColor?: string;
     backgroundImage?: string;
   }>({});
-  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'pro-plus'>('free');
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'premium'>('free');
   const [contentWarningDismissed, setContentWarningDismissed] = useState(false);
   
   // Load subscription tier
@@ -280,6 +286,13 @@ export function ProfileHeader({ user, activeStatus = false, activeStreak = 0, sh
           <Text style={[styles.name, { color: pageTextColor }]} numberOfLines={1}>
             {user?.name || 'User'}
           </Text>
+          {(showPremiumBadge || user?.isVerified) && (() => {
+            const tier = premiumBadgeTier ?? user?.verifiedTier ?? 'premium';
+            const badgeColor = tier === 'pro'
+              ? (colorScheme === 'dark' ? '#FFFFFF' : colors.textMuted)
+              : pageAccentColor;
+            return <Ionicons name="checkmark-circle" size={20} color={badgeColor} style={styles.verifiedBadge} />;
+          })()}
         </View>
         
         <View style={styles.handleRow}>
@@ -337,7 +350,7 @@ export function ProfileHeader({ user, activeStatus = false, activeStreak = 0, sh
         )}
 
         {/* Premium: Custom Creator Label */}
-        {subscriptionTier === 'pro-plus' && user?.label && (
+        {subscriptionTier === 'premium' && user?.label && (
           <View style={[styles.creatorLabelContainer, { backgroundColor: pageAccentColor + '15' }]}>
             <Ionicons name="star" size={14} color={pageAccentColor} />
             <Text style={[styles.creatorLabel, { color: pageAccentColor }]}>
@@ -378,7 +391,7 @@ export function ProfileHeader({ user, activeStatus = false, activeStreak = 0, sh
           )}
         </View>
 
-        {showFollowButton && user?.id && (
+        {showFollowButton && !followButtonBelowStats && user?.id && (
           <View style={styles.actionButtonsRow}>
             <View style={styles.followButtonContainer}>
               <FollowButton
@@ -513,34 +526,37 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   userInfo: {
-    paddingTop: AVATAR_OFFSET + USER_INFO_TOP_PADDING + 6,
+    paddingTop: AVATAR_OFFSET + USER_INFO_TOP_PADDING + 2,
     paddingHorizontal: Spacing.md,
     paddingBottom: 0,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 2,
+    marginBottom: 0,
     gap: Spacing.xs,
     flexWrap: 'wrap',
   },
   name: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
-    letterSpacing: -0.6,
-    lineHeight: 34,
+    letterSpacing: -0.5,
+    lineHeight: 32,
+  },
+  verifiedBadge: {
+    marginLeft: 4,
   },
   handleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 2,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
     flexWrap: 'wrap',
   },
   handle: {
     fontSize: 15,
     fontWeight: '500',
-    opacity: 0.7,
+    opacity: 0.75,
     letterSpacing: -0.1,
   },
   separator: {
@@ -555,22 +571,22 @@ const styles = StyleSheet.create({
     opacity: 0.95,
   },
   bioContainer: {
-    marginTop: Spacing.md + 2,
-    marginBottom: Spacing.md,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
     paddingRight: Spacing.xs,
   },
   bio: {
     fontSize: 15,
-    lineHeight: 24,
+    lineHeight: 22,
     letterSpacing: -0.1,
     opacity: 0.9,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: Spacing.xs,
+    marginTop: 0,
     marginBottom: 0,
-    gap: Spacing.md + 2,
+    gap: Spacing.md,
     flexWrap: 'wrap',
   },
   joinDateContainer: {

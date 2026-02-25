@@ -23,12 +23,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { getStories, deleteStory } from '@/lib/api/stories';
 import { Story, StoryTextOverlay, StoryStickerOverlay, StoryOverlay, StoryViewer } from '@/types/post';
 import { useCurrentUserId } from '@/hooks/useCurrentUserId';
-import { Colors, Spacing, BorderRadius } from '@/constants/theme';
+import { Colors, Spacing, BorderRadius, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useReportBlock } from '@/hooks/useReportBlock';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PlaceholderUrls } from '@/constants/urls';
+import { BlurView } from 'expo-blur';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const STORY_DURATION = 5000;
@@ -476,101 +477,126 @@ export default function StoryViewerScreen() {
         </View>
       </View>
       
-      {/* Progress bars (Instagram-style: horizontal at top) */}
-      <View style={[styles.progressRow, { paddingTop: insets.top + 8 }]}>
-        {currentUserStories.map((_, index) => (
-          <View key={index} style={styles.progressSegmentWrapper}>
-            <View style={styles.progressSegmentBg} />
-            {index === currentStoryIndex ? (
-              <Animated.View
-                style={[
-                  styles.progressSegmentFill,
-                  {
-                    width: progressAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0%', '100%'],
-                    }),
-                  },
-                ]}
-              />
-            ) : index < currentStoryIndex ? (
-              <View style={[styles.progressSegmentFill, { width: '100%' }]} />
-            ) : null}
+      {/* Header: progress on top, then pill with blur + user + actions */}
+      <View style={[styles.topHeader, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.headerPill} pointerEvents="box-none">
+          {Platform.OS === 'ios' ? (
+            <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} pointerEvents="none" />
+          ) : null}
+          <View style={styles.headerPillOverlay} pointerEvents="none" />
+          {/* Progress row first so pill has clear height */}
+          <View style={styles.headerProgressRow}>
+            {currentUserStories.map((_, index) => (
+              <View key={index} style={styles.progressSegmentWrapper}>
+                {index === currentStoryIndex ? (
+                  <Animated.View
+                    style={[
+                      styles.progressSegmentFill,
+                      { backgroundColor: '#FFFFFF' },
+                      {
+                        width: progressAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0%', '100%'],
+                        }),
+                      },
+                    ]}
+                  />
+                ) : index < currentStoryIndex ? (
+                  <View style={[styles.progressSegmentFill, { width: '100%', backgroundColor: '#FFFFFF' }]} />
+                ) : null}
+              </View>
+            ))}
           </View>
-        ))}
-      </View>
-
-      {/* Top header */}
-      <View style={[styles.topHeader, { paddingTop: insets.top + 8 + 3 + 8 + 6 }]}>
-        <View style={styles.userInfo}>
-          <ExpoImage
-            source={{ uri: currentStory.author.avatar || PlaceholderUrls.avatarGeneric() }}
-            style={styles.headerAvatar}
-            contentFit="cover"
-          />
-          <View>
-            <Text style={styles.userName}>{currentStory.author.name}</Text>
-            <Text style={styles.storyTime}>{formatStoryTime(currentStory.createdAt)}</Text>
+          <View style={styles.headerPillRow}>
+            <TouchableOpacity
+              style={styles.headerPillLeft}
+              activeOpacity={0.8}
+              onPress={() => {
+                const authorId = currentStory?.author?.id;
+                if (!authorId) return;
+                haptics.light();
+                router.push(`/profile/${authorId}`);
+              }}
+              accessibilityLabel={`View ${currentStory.author.name}'s profile`}
+              accessibilityRole="button"
+            >
+              <View style={styles.headerAvatarWrap}>
+                <ExpoImage
+                  source={{ uri: currentStory.author.avatar || PlaceholderUrls.avatarGeneric() }}
+                  style={styles.headerAvatar}
+                  contentFit="cover"
+                />
+              </View>
+              <View style={styles.headerTextBlock}>
+                <Text style={styles.userName} numberOfLines={1}>{currentStory.author.name}</Text>
+                <Text style={styles.storyTime}>{formatStoryTime(currentStory.createdAt)}</Text>
+              </View>
+            </TouchableOpacity>
+            <View style={styles.headerPillDivider} />
+            <View style={styles.headerPillActions}>
+              {!isOwnStory && currentStory?.author && (() => {
+                const opts = getReportBlockOptions({
+                  id: currentStory.author.id,
+                  name: currentStory.author.name,
+                  handle: currentStory.author.handle,
+                  avatar: currentStory.author.avatar,
+                });
+                if (opts.length === 0) return null;
+                return (
+                  <TouchableOpacity
+                    style={styles.headerActionBtn}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      haptics.light();
+                      Alert.alert('Options', '', [
+                        ...opts.map((o) => ({ text: o.text, style: o.style, onPress: o.onPress })),
+                        { text: 'Cancel', style: 'cancel' },
+                      ]);
+                    }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255,255,255,0.95)" />
+                  </TouchableOpacity>
+                );
+              })()}
+              {isOwnStory && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.headerActionBtn, styles.headerActionBtnAccent]}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      haptics.light();
+                      router.push('/story/create');
+                    }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="add" size={22} color="#FFFFFF" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.headerActionBtn, styles.headerActionBtnDanger]}
+                    activeOpacity={0.7}
+                    onPress={handleDeleteStory}
+                    disabled={deleting}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    {deleting ? (
+                      <ActivityIndicator size="small" color={colors.danger} />
+                    ) : (
+                      <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                    )}
+                  </TouchableOpacity>
+                </>
+              )}
+              <TouchableOpacity
+                style={styles.closeButton}
+                activeOpacity={0.7}
+                onPress={() => router.back()}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-        <View style={styles.topHeaderActions}>
-          {!isOwnStory && currentStory?.author && (() => {
-            const opts = getReportBlockOptions({
-              id: currentStory.author.id,
-              name: currentStory.author.name,
-              handle: currentStory.author.handle,
-              avatar: currentStory.author.avatar,
-            });
-            if (opts.length === 0) return null;
-            return (
-              <TouchableOpacity
-                style={styles.headerAddBtn}
-                onPress={() => {
-                  haptics.light();
-                  Alert.alert('Options', '', [
-                    ...opts.map((o) => ({ text: o.text, style: o.style, onPress: o.onPress })),
-                    { text: 'Cancel', style: 'cancel' },
-                  ]);
-                }}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name="ellipsis-horizontal" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
-            );
-          })()}
-          {isOwnStory && (
-            <>
-              <TouchableOpacity
-                style={styles.headerAddBtn}
-                onPress={() => {
-                  haptics.light();
-                  router.push('/story/create');
-                }}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name="add-circle-outline" size={26} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.headerDeleteBtn}
-                onPress={handleDeleteStory}
-                disabled={deleting}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                {deleting ? (
-                  <ActivityIndicator size="small" color="#FF3B30" />
-                ) : (
-                  <Ionicons name="trash-outline" size={22} color="#FF3B30" />
-                )}
-              </TouchableOpacity>
-            </>
-          )}
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => router.back()}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="close" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -836,16 +862,38 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
-  progressRow: {
+  topHeader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.sm,
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
+    zIndex: 20,
+  },
+  headerPill: {
+    flexDirection: 'column',
+    alignSelf: 'stretch',
+    flex: 1,
+    minWidth: 0,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 24,
+    backgroundColor: Platform.select({ ios: 'transparent', default: 'rgba(0,0,0,0.55)' }),
+    overflow: 'hidden',
+  },
+  headerPillOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Platform.select({ ios: 'rgba(0,0,0,0.12)', default: 'transparent' }),
+  },
+  headerProgressRow: {
     flexDirection: 'row',
     gap: 4,
-    paddingHorizontal: Spacing.sm,
-    paddingBottom: 8,
-    zIndex: 10,
+    marginBottom: Spacing.sm,
   },
   progressSegmentWrapper: {
     flex: 1,
@@ -854,76 +902,99 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.35)',
   },
-  progressSegmentBg: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.35)',
-  },
   progressSegmentFill: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: '#FFFFFF',
     borderRadius: 2,
   },
-  topHeader: {
+  headerPillRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.sm,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
+    flex: 1,
+    minWidth: 0,
   },
-  userInfo: {
+  headerPillLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+    flex: 1,
+    minWidth: 0,
+    paddingRight: Spacing.sm,
+  },
+  headerPillDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginRight: Spacing.sm,
+  },
+  headerPillActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  headerAvatarWrap: {
+    overflow: 'hidden',
+    borderRadius: 18,
+    width: 36,
+    height: 36,
   },
   headerAvatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+  },
+  headerTextBlock: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
   },
   userName: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
+    letterSpacing: 0.15,
+    ...Platform.select({
+      ios: {
+        textShadowColor: 'rgba(0,0,0,0.4)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+      },
+    }),
   },
   storyTime: {
     color: 'rgba(255,255,255,0.75)',
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 13,
+    marginTop: 1,
+    fontWeight: '400',
+    ...Platform.select({
+      ios: {
+        textShadowColor: 'rgba(0,0,0,0.35)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 1,
+      },
+    }),
   },
-  topHeaderActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  headerAddBtn: {
-    padding: Spacing.xs,
-    marginRight: 4,
-    width: 40,
-    height: 40,
+  headerActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.14)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerDeleteBtn: {
-    padding: Spacing.xs,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+  headerActionBtnAccent: {
+    backgroundColor: 'rgba(255,255,255,0.22)',
+  },
+  headerActionBtnDanger: {
+    backgroundColor: 'rgba(220,38,38,0.2)',
   },
   closeButton: {
-    padding: Spacing.xs,
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
   },

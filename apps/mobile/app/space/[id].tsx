@@ -58,7 +58,7 @@ export default function SpaceDetailScreen() {
   const [maxPinned, setMaxPinned] = useState(0);
   const [deletedPosts, setDeletedPosts] = useState<Set<string>>(new Set());
   const [removedPostIds, setRemovedPostIds] = useState<Set<string>>(new Set());
-  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'pro-plus'>('free');
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'premium'>('free');
   const [showChannelModal, setShowChannelModal] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
   const [newChannelType, setNewChannelType] = useState<'text' | 'announcement'>('text');
@@ -1598,7 +1598,7 @@ export default function SpaceDetailScreen() {
     }
 
     // Space analytics is Pro+ only
-    if (subscriptionTier !== 'pro-plus') {
+    if (subscriptionTier !== 'premium') {
       return (
         <View style={[styles.emptyTab, { backgroundColor: colors.spaceBackground }]}>
           <IconSymbol name="lock-closed-outline" size={48} color={colors.secondary} />

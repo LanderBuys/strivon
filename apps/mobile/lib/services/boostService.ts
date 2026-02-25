@@ -9,7 +9,7 @@ export interface BoostResult {
   postId: string;
   timestamp: string;
   reachImprovement: number; // Percentage (e.g., 18 for 18%)
-  boostType: 'rewarded' | 'pro' | 'pro-plus';
+  boostType: 'rewarded' | 'pro' | 'premium';
   duration: number; // Hours (24 for free, 48 for pro+)
 }
 
@@ -61,7 +61,7 @@ export async function canUseRewardedBoost(postId: string, isAlreadyBoosted: bool
 
   // Check user subscription tier
   const metrics = await getUserMetrics();
-  if (metrics.subscriptionTier === 'pro' || metrics.subscriptionTier === 'pro-plus') {
+  if (metrics.subscriptionTier === 'pro' || metrics.subscriptionTier === 'premium') {
     return false; // Premium users don't get rewarded boosts
   }
 

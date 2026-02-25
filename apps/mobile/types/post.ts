@@ -6,6 +6,18 @@ export interface User {
   label?: string;
   bio?: string;
   country?: string;
+  /** Profile banner image or video URL */
+  banner?: string | null;
+  /** Job title / role (e.g. "Founder & CEO") */
+  occupation?: string;
+  /** ISO date when the account was created (e.g. "2022-03-15") */
+  joinDate?: string;
+  /** Optional content warning shown on profile */
+  contentWarning?: string | null;
+  /** Pro/Premium subscriber – shows checkmark badge (blue for Premium, white for Pro) */
+  isVerified?: boolean;
+  /** When isVerified: 'premium' = blue checkmark (Premium), 'pro' = white checkmark (Pro) */
+  verifiedTier?: 'pro' | 'premium';
 }
 
 export interface PostMedia {
@@ -47,7 +59,7 @@ export interface Post {
   status?: PostStatus;
   // Boost-related fields
   isBoosted?: boolean;
-  boostType?: 'rewarded' | 'pro' | 'pro-plus';
+  boostType?: 'rewarded' | 'pro' | 'premium';
   reachImprovement?: number; // Percentage improvement (e.g., 18 for 18%)
   baseReach?: number; // Base reach before boost
 }

@@ -1,9 +1,18 @@
 import type { NextConfig } from "next";
 import path from "path";
 
+// Force Turbopack root to apps/web so it finds next/package.json. Stops Next from
+// treating the route folder "app" as the project root (monorepo bug).
+const projectRoot = path.resolve(__dirname);
+
 const nextConfig: NextConfig = {
-  // Silence "multiple lockfiles" warning when running from monorepo root
-  turbopack: { root: path.resolve(__dirname) },
+  turbopack: { root: projectRoot },
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
+      { protocol: "https", hostname: "lh3.googleusercontent.com", pathname: "/**" },
+    ],
+  },
   // Firestore SSR uses Node build which requires @grpc/*; keep these external so they are required from node_modules
   serverExternalPackages: ["firebase", "firebase-admin", "@firebase/firestore", "@grpc/grpc-js", "@grpc/proto-loader"],
   async headers() {

@@ -11,6 +11,7 @@ import {
   isFollowingFirestore,
   type FirestoreUser,
 } from '@/lib/firestore/users';
+import { getMockUserById } from '@/lib/mocks/users';
 
 export type UserRecord = ApiUser & { joinDate?: string };
 
@@ -35,16 +36,22 @@ export async function getUserById(id: string): Promise<UserRecord | null> {
       const data = await api.get<ApiUser>(`/users/${id}`);
       return { ...data, joinDate: (data as any).joinDate };
     } catch (e) {
-      if (e instanceof ApiError && e.status === 404) return null;
+      if (e instanceof ApiError && e.status === 404) {
+        // Fall back to mock profile so profile screen works for mock poster ids
+        const mock = getMockUserById(id);
+        return mock ? ({ ...mock } as UserRecord) : null;
+      }
       throw e;
     }
   }
   const db = getFirestoreDb();
   if (db) {
     const u = await getFirestoreUser(id);
-    return u ? firestoreToUser(u) : null;
+    if (u) return firestoreToUser(u);
   }
-  return null;
+  // No API and no Firestore user: return mock profile if present (ids '1'–'18')
+  const mock = getMockUserById(id);
+  return mock ? ({ ...mock } as UserRecord) : null;
 }
 
 export async function updateUserProfile(

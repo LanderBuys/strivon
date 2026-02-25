@@ -77,7 +77,7 @@ export function ProfileEditModal({ visible, user, onClose, onSave }: ProfileEdit
   const [banner, setBanner] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'pro-plus'>('free');
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'premium'>('free');
   const [customCreatorLabel, setCustomCreatorLabel] = useState('');
   const [featuredPostId, setFeaturedPostId] = useState<string | null>(null);
   const [contentWarning, setContentWarning] = useState<string | null>(null);
@@ -100,7 +100,7 @@ export function ProfileEditModal({ visible, user, onClose, onSave }: ProfileEdit
     const checkAccess = async () => {
       const tier = await getSubscriptionTier();
       setSubscriptionTier(tier);
-      if (tier === 'pro-plus') {
+      if (tier === 'premium') {
         setCustomCreatorLabel(user.label || '');
       }
     };
@@ -250,7 +250,7 @@ export function ProfileEditModal({ visible, user, onClose, onSave }: ProfileEdit
         avatar: avatar || undefined,
         banner: banner || undefined,
         contentWarning: contentWarning ? sanitizeText(contentWarning, 100) : null,
-        label: subscriptionTier === 'pro-plus' ? sanitizeText(customCreatorLabel, 50) || undefined : user.label,
+        label: subscriptionTier === 'premium' ? sanitizeText(customCreatorLabel, 50) || undefined : user.label,
       });
       haptics.success();
       onClose();

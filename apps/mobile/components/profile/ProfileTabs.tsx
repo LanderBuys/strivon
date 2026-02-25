@@ -1,156 +1,104 @@
-import { View, TouchableOpacity, Text, StyleSheet, Animated, Dimensions } from 'react-native';
-import { useEffect, useRef } from 'react';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing, Typography, hexToRgba } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
-import { Ionicons } from '@expo/vector-icons';
-
-const screenWidth = Dimensions.get('window').width;
-const TAB_WIDTH = screenWidth / 2; // 2 tabs: posts, saved
 
 type ProfileTabType = 'posts' | 'saved';
+
+export type ProfileViewMode = 'list' | 'grid';
 
 interface ProfileTabsProps {
   activeTab: ProfileTabType;
   onTabChange: (tab: ProfileTabType) => void;
   accentColor?: string;
   textColor?: string;
-  counts?: {
-    posts?: number;
-    saved?: number;
-  };
+  showSavedTab?: boolean;
+  viewMode?: ProfileViewMode;
+  onViewModeChange?: (mode: ProfileViewMode) => void;
+  counts?: { posts?: number; saved?: number };
 }
 
-const TABS: ProfileTabType[] = ['posts', 'saved'];
-const TAB_LABELS: Record<ProfileTabType, string> = {
-  posts: 'Posts',
-  saved: 'Saved',
-};
-const TAB_ICONS: Record<ProfileTabType, keyof typeof Ionicons.glyphMap> = {
-  posts: 'grid-outline',
-  saved: 'bookmark-outline',
-};
+const TAB_LABELS: Record<ProfileTabType, string> = { posts: 'Posts', saved: 'Saved' };
 
-const TAB_ICONS_ACTIVE: Record<ProfileTabType, keyof typeof Ionicons.glyphMap> = {
-  posts: 'grid',
-  saved: 'bookmark',
-};
-
-export function ProfileTabs({ activeTab, onTabChange, accentColor, textColor, counts }: ProfileTabsProps) {
+export function ProfileTabs({ activeTab, onTabChange, accentColor, textColor, showSavedTab = true, viewMode = 'grid', onViewModeChange, counts }: ProfileTabsProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const haptics = useHapticFeedback();
-  
-  const effectiveAccentColor = accentColor || colors.primary;
-  const effectiveTextColor = textColor || colors.text;
-  const inactiveColor = textColor ? hexToRgba(textColor, 0.45) : colors.secondary;
-  const borderColor = textColor ? hexToRgba(textColor, 0.08) : colors.divider;
-  const activeBgColor = textColor ? hexToRgba(effectiveAccentColor, 0.08) : hexToRgba(colors.primary, 0.08);
+  const tabs = showSavedTab ? (['posts', 'saved'] as const) : (['posts'] as const);
+  const showViewToggle = onViewModeChange != null;
 
-  const activeIndex = TABS.indexOf(activeTab);
-  const indicatorPosition = useRef(new Animated.Value(activeIndex)).current;
-
-  useEffect(() => {
-    Animated.spring(indicatorPosition, {
-      toValue: activeIndex,
-      useNativeDriver: true,
-      tension: 68,
-      friction: 8,
-    }).start();
-  }, [activeTab, activeIndex, indicatorPosition]);
+  const accent = accentColor || colors.primary;
+  const fg = textColor || colors.text;
+  const muted = textColor ? hexToRgba(textColor, 0.55) : colors.textMuted;
 
   const handleTabPress = (tab: ProfileTabType) => {
     haptics.selection();
+    if (tab === 'posts' && showViewToggle && activeTab === 'posts') {
+      onViewModeChange!(viewMode === 'grid' ? 'list' : 'grid');
+      return;
+    }
     onTabChange(tab);
   };
 
   return (
-    <View style={[styles.container, { borderBottomColor: borderColor }]}>
-      <View style={styles.tabsWrapper}>
-        {TABS.map((tab) => {
-          const isActive = activeTab === tab;
-          
-          return (
-            <TouchableOpacity
-              key={tab}
-              style={[
-                styles.tab,
-                isActive && { backgroundColor: activeBgColor },
-              ]}
-              onPress={() => handleTabPress(tab)}
-              activeOpacity={0.6}
-            >
-              <View style={styles.tabContent}>
-                <Ionicons
-                  name={isActive ? TAB_ICONS_ACTIVE[tab] : TAB_ICONS[tab]}
-                  size={16}
-                  color={isActive ? effectiveAccentColor : inactiveColor}
-                  style={styles.tabIcon}
-                />
-                <Text
-                  style={[
-                    styles.tabText,
-                    {
-                      color: isActive ? effectiveAccentColor : inactiveColor,
-                    },
-                    isActive && styles.activeTabText,
-                  ]}
-                >
-                  {TAB_LABELS[tab]}
-                  {counts != null && (counts[tab] ?? 0) >= 0 && (
-                    <Text style={[styles.tabCount, { color: isActive ? effectiveAccentColor : inactiveColor }]}>
-                      {' '}({counts[tab] ?? 0})
-                    </Text>
-                  )}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+    <View style={styles.wrap}>
+      {tabs.map((tab) => {
+        const isActive = activeTab === tab;
+        const count = counts?.[tab];
+        return (
+          <TouchableOpacity
+            key={tab}
+            style={styles.tab}
+            onPress={() => handleTabPress(tab)}
+            activeOpacity={0.6}
+            accessibilityLabel={tab === 'posts' && showViewToggle ? `${TAB_LABELS[tab]}, tap to switch list or grid` : TAB_LABELS[tab]}
+            accessibilityRole="tab"
+          >
+            <Text style={[styles.label, { color: isActive ? fg : muted }, isActive && styles.labelActive]}>
+              {TAB_LABELS[tab]}
+              {count != null && (
+                <Text style={[styles.count, { color: isActive ? fg : muted }]}>  {count}</Text>
+              )}
+            </Text>
+            {isActive && <View style={[styles.underline, { backgroundColor: accent }]} />}
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    position: 'relative',
-    paddingVertical: Spacing.xs,
-  },
-  tabsWrapper: {
+  wrap: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+    paddingBottom: 0,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.md + 6,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: 10,
-    marginHorizontal: Spacing.xs / 2,
+    paddingVertical: Spacing.sm + 4,
   },
-  tabContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-  },
-  tabIcon: {
-    // Icon spacing handled by gap
-  },
-  tabText: {
-    fontSize: Typography.sm + 2,
+  label: {
+    fontSize: Typography.base,
     fontWeight: '600',
-    letterSpacing: -0.15,
   },
-  activeTabText: {
+  labelActive: {
     fontWeight: '700',
-    letterSpacing: -0.2,
   },
-  tabCount: {
+  count: {
+    fontSize: Typography.sm,
     fontWeight: '500',
     opacity: 0.9,
+  },
+  underline: {
+    position: 'absolute',
+    bottom: 0,
+    left: Spacing.lg,
+    right: Spacing.lg,
+    height: 2,
+    borderRadius: 1,
   },
 });

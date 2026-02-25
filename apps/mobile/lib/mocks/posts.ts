@@ -1,4 +1,5 @@
 import { Post } from '@/types/post';
+import { getMockUserById } from '@/lib/mocks/users';
 
 // 9:16 dimensions for full-screen portrait (e.g. 720x1280, 1080x1920)
 const W_9_16 = 1080;
@@ -7,13 +8,7 @@ const H_9_16 = 1920;
 export const mockPosts: Post[] = [
   {
     id: 'p-9-16-1',
-    author: {
-      id: 'u-v',
-      name: 'Jordan Blake',
-      handle: '@jordan',
-      avatar: 'https://i.pravatar.cc/150?img=68',
-      label: 'Creator',
-    },
+    author: getMockUserById('15')!,
     content: 'Golden hour hits different 📱 Full screen vibes only.',
     createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
     likes: 2840,
@@ -36,13 +31,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: 'p-9-16-2',
-    author: {
-      id: 'u-w',
-      name: 'Sam Rivera',
-      handle: '@sam',
-      avatar: 'https://i.pravatar.cc/150?img=22',
-      label: 'Photographer',
-    },
+    author: getMockUserById('16')!,
     content: 'City lights from above 🌃 9:16 for the feed.',
     createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
     likes: 5200,
@@ -65,13 +54,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: 'p-9-16-3',
-    author: {
-      id: 'u-x',
-      name: 'Casey Morgan',
-      handle: '@casey',
-      avatar: 'https://i.pravatar.cc/150?img=48',
-      label: 'Travel',
-    },
+    author: getMockUserById('17')!,
     content: 'Beach sunset — no crop, full screen 📲',
     createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
     likes: 1920,
@@ -94,13 +77,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: 'p-9-16-4',
-    author: {
-      id: 'u-y',
-      name: 'Riley Quinn',
-      handle: '@riley',
-      avatar: 'https://i.pravatar.cc/150?img=44',
-      label: 'Artist',
-    },
+    author: getMockUserById('18')!,
     content: 'Portrait format only. This is the way.',
     createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
     likes: 4100,
@@ -123,13 +100,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '1',
-    author: {
-      id: '1',
-      name: 'Alex Chen',
-      handle: '@alex',
-      avatar: 'https://i.pravatar.cc/150?img=12',
-      label: 'Developer',
-    },
+    author: getMockUserById('1')!,
     content: 'Just shipped a new feature! 🚀 Excited to see what the community thinks. What features would you like to see next?',
     createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
     likes: 42,
@@ -143,13 +114,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '2',
-    author: {
-      id: '2',
-      name: 'Sarah Johnson',
-      handle: '@sarah',
-      avatar: 'https://i.pravatar.cc/150?img=47',
-      label: 'Designer',
-    },
+    author: getMockUserById('2')!,
     content: 'Working on some new UI concepts. The design system is coming together nicely! 💫\n\n#design #ui #ux',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
     likes: 89,
@@ -172,13 +137,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '3',
-    author: {
-      id: '3',
-      name: 'Mike Rodriguez',
-      handle: '@mike',
-      avatar: 'https://i.pravatar.cc/150?img=33',
-      label: 'Product Manager',
-    },
+    author: getMockUserById('3')!,
     content: 'Question: What\'s the biggest challenge you face when building products?\n\nLooking for insights from the community! 🤔',
     title: 'What\'s your biggest product challenge?',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), // 5 hours ago
@@ -221,13 +180,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '4',
-    author: {
-      id: '4',
-      name: 'Emma Wilson',
-      handle: '@emma',
-      avatar: 'https://i.pravatar.cc/150?img=45',
-      label: 'Engineer',
-    },
+    author: getMockUserById('4')!,
     content: 'Build log: Day 15 of my side project\n\n✅ Implemented authentication\n✅ Set up database\n⏳ Working on API endpoints\n\nProgress is steady! 📈',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(), // 8 hours ago
     likes: 67,
@@ -257,13 +210,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '5',
-    author: {
-      id: '5',
-      name: 'David Kim',
-      handle: '@david',
-      avatar: 'https://i.pravatar.cc/150?img=13',
-      label: 'Founder',
-    },
+    author: getMockUserById('5')!,
     content: 'Win: Just closed our first enterprise customer! 🎉\n\nThis has been months in the making. Grateful for the team and the journey.',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(), // 12 hours ago
     likes: 234,
@@ -300,13 +247,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '6',
-    author: {
-      id: '6',
-      name: 'Lisa Park',
-      handle: '@lisa',
-      avatar: 'https://i.pravatar.cc/150?img=32',
-      label: 'Developer',
-    },
+    author: getMockUserById('6')!,
     content: 'Looking for collaborators on an open-source project! We\'re building a modern task management tool. If you\'re interested in React, TypeScript, or design, let\'s chat! 👥',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(), // 18 hours ago
     likes: 98,
@@ -331,13 +272,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '7',
-    author: {
-      id: '1',
-      name: 'Alex Chen',
-      handle: '@alex',
-      avatar: 'https://i.pravatar.cc/150?img=12',
-      label: 'Developer',
-    },
+    author: getMockUserById('1')!,
     content: 'Check out this amazing workspace setup! 🖥️\n\nWhat do you think?',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
     likes: 312,
@@ -388,13 +323,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '8',
-    author: {
-      id: '7',
-      name: 'James Taylor',
-      handle: '@james',
-      avatar: 'https://i.pravatar.cc/150?img=15',
-      label: 'Designer',
-    },
+    author: getMockUserById('7')!,
     content: 'New design system update! 🎨\n\nWe\'ve improved the color palette and typography. Check it out!\n\n#designsystem #ui #design',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 30).toISOString(), // 30 hours ago
     likes: 145,
@@ -417,13 +346,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '9',
-    author: {
-      id: '8',
-      name: 'Maria Garcia',
-      handle: '@maria',
-      avatar: 'https://i.pravatar.cc/150?img=20',
-      label: 'Engineer',
-    },
+    author: getMockUserById('8')!,
     content: 'Just learned about React Server Components. Mind blown! 🤯\n\nAnyone else experimenting with RSC? #react #webdev #javascript',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 36).toISOString(), // 36 hours ago
     likes: 203,
@@ -437,13 +360,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '10',
-    author: {
-      id: '9',
-      name: 'Chris Anderson',
-      handle: '@chris',
-      avatar: 'https://i.pravatar.cc/150?img=25',
-      label: 'Product Manager',
-    },
+    author: getMockUserById('9')!,
     content: 'Product tip: Always start with the problem, not the solution.\n\nWhat problems are you solving today? #product #startup',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 42).toISOString(), // 42 hours ago
     likes: 178,
@@ -457,13 +374,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '11',
-    author: {
-      id: '10',
-      name: 'Sophie Brown',
-      handle: '@sophie',
-      avatar: 'https://i.pravatar.cc/150?img=30',
-      label: 'Developer',
-    },
+    author: getMockUserById('10')!,
     content: 'TypeScript + React = ❤️\n\nType safety makes development so much better. Who else loves TS? #typescript #react #coding',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
     likes: 267,
@@ -486,13 +397,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '12',
-    author: {
-      id: '2',
-      name: 'Sarah Johnson',
-      handle: '@sarah',
-      avatar: 'https://i.pravatar.cc/150?img=47',
-      label: 'Designer',
-    },
+    author: getMockUserById('2')!,
     content: 'Design inspiration dump! 💫\n\nLove these color combinations and layouts. What do you think?\n\n#design #inspiration #ui',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 54).toISOString(), // 2.25 days ago
     likes: 312,
@@ -522,13 +427,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '13',
-    author: {
-      id: '11',
-      name: 'Ryan Lee',
-      handle: '@ryan',
-      avatar: 'https://i.pravatar.cc/150?img=35',
-      label: 'Founder',
-    },
+    author: getMockUserById('11')!,
     content: 'Building in public: Week 3 update\n\n✅ Launched beta\n✅ Got first 100 users\n⏳ Working on onboarding flow\n\n#buildinpublic #startup #indiehacker',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 60).toISOString(), // 2.5 days ago
     likes: 445,
@@ -542,13 +441,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '14',
-    author: {
-      id: '4',
-      name: 'Emma Wilson',
-      handle: '@emma',
-      avatar: 'https://i.pravatar.cc/150?img=45',
-      label: 'Engineer',
-    },
+    author: getMockUserById('4')!,
     content: 'API design best practices thread 🧵\n\n1. Use RESTful conventions\n2. Version your APIs\n3. Provide clear error messages\n4. Document everything\n\nWhat would you add? #api #backend #webdev',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 66).toISOString(), // 2.75 days ago
     likes: 289,
@@ -562,13 +455,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '15',
-    author: {
-      id: '12',
-      name: 'Olivia Martinez',
-      handle: '@olivia',
-      avatar: 'https://i.pravatar.cc/150?img=40',
-      label: 'Designer',
-    },
+    author: getMockUserById('12')!,
     content: 'Mobile design patterns that work 📱\n\nSharing some of my favorite mobile UI patterns. Swipe to see more!\n\n#mobile #design #ux',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(), // 3 days ago
     likes: 198,
@@ -605,13 +492,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '16',
-    author: {
-      id: '5',
-      name: 'David Kim',
-      handle: '@david',
-      avatar: 'https://i.pravatar.cc/150?img=13',
-      label: 'Founder',
-    },
+    author: getMockUserById('5')!,
     content: 'Lessons from raising our seed round:\n\n1. Network matters\n2. Traction > idea\n3. Be prepared for rejection\n4. Persistence pays off\n\n#startup #fundraising #entrepreneurship',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 78).toISOString(), // 3.25 days ago
     likes: 523,
@@ -625,13 +506,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '17',
-    author: {
-      id: '13',
-      name: 'Noah Thompson',
-      handle: '@noah',
-      avatar: 'https://i.pravatar.cc/150?img=50',
-      label: 'Developer',
-    },
+    author: getMockUserById('13')!,
     content: 'Just open-sourced my CLI tool! 🎉\n\nIt helps manage environment variables across projects. Check it out: https://github.com/example/env-manager\n\n#opensource #cli #devtools',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 84).toISOString(), // 3.5 days ago
     likes: 167,
@@ -645,13 +520,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '18',
-    author: {
-      id: '6',
-      name: 'Lisa Park',
-      handle: '@lisa',
-      avatar: 'https://i.pravatar.cc/150?img=32',
-      label: 'Developer',
-    },
+    author: getMockUserById('6')!,
     content: 'Testing strategies that actually work 🧪\n\nUnit tests, integration tests, E2E tests - when to use what?\n\n#testing #qa #software',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 90).toISOString(), // 3.75 days ago
     likes: 234,
@@ -665,13 +534,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '19',
-    author: {
-      id: '14',
-      name: 'Ava White',
-      handle: '@ava',
-      avatar: 'https://i.pravatar.cc/150?img=55',
-      label: 'Designer',
-    },
+    author: getMockUserById('14')!,
     content: 'Color theory in UI design 🎨\n\nUnderstanding color psychology can make or break your designs. Here\'s what I\'ve learned:\n\n#colortheory #design #ui',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 96).toISOString(), // 4 days ago
     likes: 189,
@@ -694,13 +557,7 @@ export const mockPosts: Post[] = [
   },
   {
     id: '20',
-    author: {
-      id: '1',
-      name: 'Alex Chen',
-      handle: '@alex',
-      avatar: 'https://i.pravatar.cc/150?img=12',
-      label: 'Developer',
-    },
+    author: getMockUserById('1')!,
     content: 'Performance optimization tips for React apps ⚡\n\n1. Use React.memo wisely\n2. Code splitting\n3. Lazy loading\n4. Virtual scrolling for long lists\n\n#react #performance #webdev',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 102).toISOString(), // 4.25 days ago
     likes: 356,

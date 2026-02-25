@@ -16,6 +16,10 @@ const suggestedSearches = [
   { query: 'Startup Stories', icon: 'rocket-outline', category: 'Entrepreneurship' },
   { query: 'Web Development', icon: 'globe-outline', category: 'Development' },
   { query: 'Mobile Apps', icon: 'phone-portrait-outline', category: 'Development' },
+  { query: 'Build in Public', icon: 'megaphone-outline', category: 'Community' },
+  { query: 'AI & ML', icon: 'sparkles-outline', category: 'Tech' },
+  { query: 'Open Source', icon: 'git-branch-outline', category: 'Development' },
+  { query: 'TypeScript', icon: 'logo-javascript', category: 'Development' },
 ];
 
 export function SuggestedSearches({ onSelectQuery }: SuggestedSearchesProps) {

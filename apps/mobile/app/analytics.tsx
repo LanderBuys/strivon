@@ -35,7 +35,7 @@ export default function AnalyticsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
-  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'pro-plus'>('free');
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'premium'>('free');
 
   useEffect(() => {
     checkAccess();
@@ -413,7 +413,7 @@ export default function AnalyticsScreen() {
         )}
 
         {/* Pro+ Only Features */}
-        {subscriptionTier === 'pro-plus' && (
+        {subscriptionTier === 'premium' && (
           <>
             {/* Post-Level Breakdowns */}
             <View style={styles.section}>
@@ -423,11 +423,11 @@ export default function AnalyticsScreen() {
                   Post-Level Breakdowns
                 </Text>
               </View>
-              <View style={[styles.proPlusCard, { 
+              <View style={[styles.premiumCard, { 
                 backgroundColor: colors.cardBackground,
                 borderColor: colors.cardBorder,
               }]}>
-                <Text style={[styles.proPlusText, { color: colors.secondary }]}>
+                <Text style={[styles.premiumText, { color: colors.secondary }]}>
                   Detailed performance metrics for each individual post, including engagement patterns, reach distribution, and audience interaction timelines.
                 </Text>
                 {analytics.topPosts.slice(0, 3).map((post, index) => (
@@ -480,11 +480,11 @@ export default function AnalyticsScreen() {
                   Audience Segmentation
                 </Text>
               </View>
-              <View style={[styles.proPlusCard, { 
+              <View style={[styles.premiumCard, { 
                 backgroundColor: colors.cardBackground,
                 borderColor: colors.cardBorder,
               }]}>
-                <Text style={[styles.proPlusText, { color: colors.secondary }]}>
+                <Text style={[styles.premiumText, { color: colors.secondary }]}>
                   Understand your audience demographics, engagement patterns, and growth trends.
                 </Text>
                 <View style={styles.segmentationGrid}>
@@ -536,7 +536,7 @@ export default function AnalyticsScreen() {
                   Growth & Momentum Trends
                 </Text>
               </View>
-              <View style={[styles.proPlusCard, { 
+              <View style={[styles.premiumCard, { 
                 backgroundColor: colors.cardBackground,
                 borderColor: colors.cardBorder,
               }]}>
@@ -579,7 +579,7 @@ export default function AnalyticsScreen() {
                   Monthly Performance Report
                 </Text>
               </View>
-              <View style={[styles.proPlusCard, { 
+              <View style={[styles.premiumCard, { 
                 backgroundColor: colors.cardBackground,
                 borderColor: colors.cardBorder,
               }]}>
@@ -960,13 +960,13 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm,
     fontWeight: '600',
   },
-  proPlusCard: {
+  premiumCard: {
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     padding: Spacing.lg,
     marginTop: Spacing.md,
   },
-  proPlusText: {
+  premiumText: {
     fontSize: Typography.sm,
     lineHeight: 20,
     marginBottom: Spacing.md,
