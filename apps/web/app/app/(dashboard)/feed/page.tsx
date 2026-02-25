@@ -38,8 +38,8 @@ function PostCard({
     if (busy) return;
     setBusy(true);
     try {
-      const newCount = await onLike(post.id);
-      setLikesCount(newCount);
+      await onLike(post.id);
+      setLikesCount((prev) => (liked ? prev - 1 : prev + 1));
       setLiked(!liked);
     } catch {
       // Post may not exist in Firestore (e.g. mock data)
