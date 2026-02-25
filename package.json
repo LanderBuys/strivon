@@ -1,10 +1,13 @@
 {
   "name": "strivon",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "engines": {
+    "node": "20.x"
+  },
+  "overrides": {
+    "minimatch": ">=10.2.1"
+  },
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "start": "npm run dev:mobile",
     "dev:mobile": "npm --prefix apps/mobile start",
