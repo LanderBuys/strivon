@@ -52,8 +52,8 @@ function PostCard({
     if (busy) return;
     setBusy(true);
     try {
-      const newCount = await onSave(post.id);
-      setSavesCount(newCount);
+      await onSave(post.id);
+      setSavesCount((prev) => (saved ? prev - 1 : prev + 1));
       setSaved(!saved);
     } catch {
       // Post may not exist in Firestore (e.g. mock data)
