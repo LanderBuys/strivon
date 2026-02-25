@@ -1,12 +1,10 @@
 import type { NextConfig } from "next";
 import path from "path";
 
-// Force Turbopack root to apps/web so it finds next/package.json. Stops Next from
-// treating the route folder "app" as the project root (monorepo bug).
-const projectRoot = path.resolve(__dirname);
-
+// Force Turbopack root to monorepo root so Next finds next/package.json (workspaces).
+const monorepoRoot = path.resolve(__dirname, "../..");
 const nextConfig: NextConfig = {
-  turbopack: { root: projectRoot },
+  turbopack: { root: monorepoRoot },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
