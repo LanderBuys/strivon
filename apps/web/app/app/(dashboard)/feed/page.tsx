@@ -1,155 +1,24 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { getFeedPosts, likePost, savePost } from "@/lib/api/posts";
 import type { Post } from "@/types/post";
+import { FeedScreenHeader } from "@/components/feed/FeedScreenHeader";
+import { FeedTabs } from "@/components/feed/FeedTabs";
+import { SortMenu, type SortOption, type ContentFilterType, type LocationScope } from "@/components/feed/SortMenu";
+import { EmptyState } from "@/components/feed/EmptyState";
+import { SearchOverlay } from "@/components/feed/SearchOverlay";
+import { ScrollToTopButton } from "@/components/feed/ScrollToTopButton";
+import { StoriesBar } from "@/components/feed/StoriesBar";
+import { PostCard } from "@/components/feed/PostCard";
+import { PostSkeleton } from "@/components/feed/PostSkeleton";
 
 const PAGE_SIZE = 10;
-
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  const now = new Date();
-  const diff = now.getTime() - d.getTime();
-  if (diff < 60 * 1000) return "Just now";
-  if (diff < 60 * 60 * 1000) return `${Math.floor(diff / 60000)}m`;
-  if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / 3600000)}h`;
-  if (diff < 7 * 24 * 60 * 60 * 1000) return `${Math.floor(diff / 86400000)}d`;
-  return d.toLocaleDateString();
-}
-
-function PostCard({
-  post,
-  onLike,
-  onSave,
-}: {
-  post: Post;
-  onLike: (postId: string) => void;
-  onSave: (postId: string) => void;
-}) {
-  const [liked, setLiked] = useState(!!post.isLiked);
-  const [saved, setSaved] = useState(!!post.isSaved);
-  const [likesCount, setLikesCount] = useState(post.likes);
-  const [savesCount, setSavesCount] = useState(post.saves);
-  const [busy, setBusy] = useState(false);
-
-  const handleLike = async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await onLike(post.id);
-      setLikesCount((prev) => (liked ? prev - 1 : prev + 1));
-      setLiked(!liked);
-    } catch {
-      // Post may not exist in Firestore (e.g. mock data)
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await onSave(post.id);
-      setSavesCount((prev) => (saved ? prev - 1 : prev + 1));
-      setSaved(!saved);
-    } catch {
-      // Post may not exist in Firestore (e.g. mock data)
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <article className="app-card smooth-card overflow-hidden">
-      <div className="flex items-center gap-3 p-4 md:p-5">
-        <Link href={`/app/profile/${post.author.id}`} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg transition-colors hover:bg-[var(--accent-subtle)]/50 -m-2 p-2">
-          {post.author.avatar ? (
-            <img
-              src={post.author.avatar}
-              alt=""
-              className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-[var(--card-border)]"
-            />
-          ) : (
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent-muted)] text-lg font-semibold text-[var(--accent)]">
-              {post.author.name[0]}
-            </span>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold text-[var(--foreground)]">{post.author.name}</p>
-            <p className="truncate text-sm text-[var(--muted)]">{post.author.handle}</p>
-          </div>
-        </Link>
-        <span className="shrink-0 text-sm text-[var(--muted)]">{formatTime(post.createdAt)}</span>
-      </div>
-      {post.content && (
-        <div className="px-4 pb-3 md:px-5">
-          <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--foreground)]">{post.content}</p>
-        </div>
-      )}
-      {post.media && post.media.length > 0 && (
-        <div className="relative aspect-video w-full bg-[var(--card-border)]/30">
-          <Image
-            src={post.media[0].url}
-            alt=""
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 600px"
-            unoptimized
-          />
-        </div>
-      )}
-      <div className="flex flex-wrap items-center gap-1 border-t border-[var(--card-border)]/80 px-4 py-3 md:px-5">
-        <button
-          type="button"
-          onClick={handleLike}
-          disabled={busy}
-          className={`smooth-btn flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors hover:bg-red-500/10 ${
-            liked ? "text-red-500" : "text-[var(--muted)] hover:text-red-500"
-          }`}
-        >
-          <svg className="h-5 w-5" fill={liked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-          </svg>
-          <span>{likesCount}</span>
-        </button>
-        <button
-          type="button"
-          className="smooth-btn flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[var(--muted)] transition-colors hover:bg-[var(--accent-subtle)] hover:text-[var(--accent)]"
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
-          </svg>
-          <span>{post.comments ?? 0}</span>
-        </button>
-        <button
-          type="button"
-          className="smooth-btn flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[var(--muted)] transition-colors hover:bg-[var(--accent-subtle)] hover:text-[var(--foreground)]"
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
-          </svg>
-          Share
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={busy}
-          className={`smooth-btn ml-auto flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--accent-subtle)] ${
-            saved ? "text-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--foreground)]"
-          }`}
-        >
-          <svg className="h-5 w-5" fill={saved ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
-          </svg>
-          Save{savesCount > 0 ? ` ${savesCount}` : ""}
-        </button>
-      </div>
-    </article>
-  );
-}
+const FEED_SORT_KEY = "strivon_feed_sort";
+const FEED_FILTER_KEY = "strivon_feed_filter";
+const FEED_LOCATION_KEY = "strivon_feed_location";
+const SCROLL_THRESHOLD = 400;
 
 export default function FeedPage() {
   const [tab, setTab] = useState<"for-you" | "following">("for-you");
@@ -159,6 +28,48 @@ export default function FeedPage() {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [sortOption, setSortOption] = useState<SortOption>("newest");
+  const [contentFilter, setContentFilter] = useState<ContentFilterType>("all");
+  const [locationScope, setLocationScope] = useState<LocationScope>("global");
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const s = localStorage.getItem(FEED_SORT_KEY) as SortOption | null;
+      const f = localStorage.getItem(FEED_FILTER_KEY) as ContentFilterType | null;
+      const l = localStorage.getItem(FEED_LOCATION_KEY) as LocationScope | null;
+      if (s && ["newest", "popular", "trending"].includes(s)) setSortOption(s);
+      if (f && ["all", "media", "text", "links"].includes(f)) setContentFilter(f);
+      if (l && ["local", "my_country", "global"].includes(l)) setLocationScope(l);
+    } finally {
+      setPrefsLoaded(true);
+    }
+  }, []);
+
+  const persistSort = useCallback((s: SortOption) => {
+    setSortOption(s);
+    try {
+      localStorage.setItem(FEED_SORT_KEY, s);
+    } catch {}
+  }, []);
+  const persistFilter = useCallback((f: ContentFilterType) => {
+    setContentFilter(f);
+    try {
+      localStorage.setItem(FEED_FILTER_KEY, f);
+    } catch {}
+  }, []);
+  const persistLocation = useCallback((l: LocationScope) => {
+    setLocationScope(l);
+    try {
+      localStorage.setItem(FEED_LOCATION_KEY, l);
+    } catch {}
+  }, []);
 
   const loadPage = useCallback(
     async (pageNum: number, append: boolean) => {
@@ -171,7 +82,12 @@ export default function FeedPage() {
         else setPosts(result.data);
         setHasMore(result.hasMore);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to load feed");
+        const msg = e instanceof Error ? e.message : "Failed to load feed";
+        setError(
+          msg.includes("network") || msg.includes("Network")
+            ? "Network error. Please check your connection."
+            : "Failed to load posts. Please try again."
+        );
         if (!append) setPosts([]);
       } finally {
         setLoading(false);
@@ -182,9 +98,22 @@ export default function FeedPage() {
   );
 
   useEffect(() => {
+    if (!prefsLoaded) return;
     setPage(1);
     loadPage(1, false);
-  }, [tab, loadPage]);
+  }, [tab, sortOption, contentFilter, locationScope, prefsLoaded, loadPage]);
+
+  // Scroll position for scroll-to-top FAB
+  useEffect(() => {
+    const el = scrollContainerRef.current ?? document.documentElement;
+    const onScroll = () => {
+      const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+      setShowScrollToTop(scrollTop > SCROLL_THRESHOLD);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const loadMore = () => {
     if (loadingMore || !hasMore) return;
@@ -193,63 +122,146 @@ export default function FeedPage() {
     loadPage(next, true);
   };
 
+  const handleScrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  const handleTabChange = useCallback((newTab: "for-you" | "following") => {
+    if (newTab === tab) return;
+    setTab(newTab);
+    setPage(1);
+    setError(null);
+  }, [tab]);
+
+  const handleRetry = useCallback(() => {
+    setError(null);
+    loadPage(1, false);
+  }, [loadPage]);
+
   const handleLike = useCallback(async (postId: string) => {
-    const { likePost: apiLike } = await import("@/lib/api/posts");
-    return apiLike(postId);
+    await likePost(postId);
   }, []);
 
   const handleSave = useCallback(async (postId: string) => {
-    const { savePost: apiSave } = await import("@/lib/api/posts");
-    return apiSave(postId);
+    await savePost(postId);
   }, []);
 
+  const unreadNotifications = 0;
+
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="mb-6 flex gap-1 rounded-2xl bg-[var(--card)] p-1.5 shadow-[var(--shadow)] ring-1 ring-[var(--card-border)]">
-        <button
-          type="button"
-          onClick={() => setTab("for-you")}
-          className={`smooth-btn flex-1 rounded-xl py-3 text-sm font-semibold transition-all ${
-            tab === "for-you"
-              ? "bg-[var(--accent)] text-white shadow-sm dark:text-[var(--foreground)]"
-              : "text-[var(--muted)] hover:bg-[var(--accent-subtle)] hover:text-[var(--foreground)]"
-          }`}
-        >
-          For You
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("following")}
-          className={`smooth-btn flex-1 rounded-xl py-3 text-sm font-semibold transition-all ${
-            tab === "following"
-              ? "bg-[var(--accent)] text-white shadow-sm dark:text-[var(--foreground)]"
-              : "text-[var(--muted)] hover:bg-[var(--accent-subtle)] hover:text-[var(--foreground)]"
-          }`}
-        >
-          Following
-        </button>
+    <div ref={scrollContainerRef} className="mx-auto w-full max-w-2xl bg-[var(--background)]">
+      <div>
+        <FeedScreenHeader
+          unreadNotifications={unreadNotifications}
+          onSearchPress={() => setShowSearch(true)}
+          onRefreshPress={() => loadPage(1, false)}
+        />
       </div>
 
-      {error && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
-          {error}
-        </div>
-      )}
+      <div>
+        <StoriesBar />
+      </div>
 
-      {loading ? (
-        <div className="space-y-5">
+      <div className="mt-0">
+        <FeedTabs
+          activeTab={tab}
+          onTabChange={handleTabChange}
+          filterButton={
+            <button
+              type="button"
+              onClick={() => setShowSortMenu(true)}
+              className="smooth-btn flex h-8 w-8 items-center justify-center rounded-lg text-[var(--muted)] transition-colors hover:bg-[var(--accent-subtle)] hover:text-[var(--foreground)]"
+              aria-label="Sort and filter"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 1-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 1-3 0m-3.75 0H7.5m9-6h9.75M7.5 3h-9.75A2.25 2.25 0 0 0 5.25 5.25v13.5A2.25 2.25 0 0 0 7.5 21h9.75a2.25 2.25 0 0 0 2.25-2.25V5.25A2.25 2.25 0 0 0 17.25 3h-9.75Z" />
+              </svg>
+            </button>
+          }
+        />
+      </div>
+
+      <SortMenu
+        activeSort={sortOption}
+        onSortChange={persistSort}
+        activeFilter={contentFilter}
+        onFilterChange={persistFilter}
+        locationScope={locationScope}
+        onLocationScopeChange={persistLocation}
+        visible={showSortMenu}
+        onClose={() => setShowSortMenu(false)}
+      />
+
+      <SearchOverlay
+        visible={showSearch}
+        query={searchQuery}
+        onQueryChange={setSearchQuery}
+        onClose={() => { setShowSearch(false); setSearchQuery(""); }}
+        allPosts={posts}
+      />
+
+      {(loading && posts.length === 0) ? (
+        <div className="mt-8 space-y-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-72 animate-pulse rounded-2xl bg-[var(--card)] ring-1 ring-[var(--card-border)]" />
+            <PostSkeleton key={i} />
           ))}
         </div>
+      ) : error ? (
+        <div className="flex min-h-[280px] flex-col items-center justify-center px-6 py-16">
+          <div className="flex max-w-[300px] flex-col items-center text-center">
+            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+              <svg className="h-7 w-7 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-semibold text-[var(--foreground)]">Something went wrong</h2>
+            <p className="mt-1.5 text-sm text-[var(--muted)]">{error}</p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="smooth-btn inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-95"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                Try again
+              </button>
+              <Link
+                href="/app/spaces"
+                className="smooth-btn inline-flex items-center rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--accent-subtle)]"
+              >
+                Explore Community
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : posts.length === 0 ? (
+        <EmptyState
+          icon="mail"
+          title="No posts yet"
+          message={
+            tab === "for-you"
+              ? "Your feed is empty. Start following people or join spaces to see posts here!"
+              : "You're not following anyone yet. Discover and follow people to see their posts here!"
+          }
+          primaryAction={{ label: "Explore Community", href: "/app/spaces" }}
+          secondaryAction={{ label: "Find People", href: "/app/spaces" }}
+        />
       ) : (
         <>
-          <div className="space-y-5">
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} onLike={handleLike} onSave={handleSave} />
+          <div className="mt-4 space-y-2">
+            {posts.map((post, index) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                onLike={handleLike}
+                onSave={handleSave}
+                index={index}
+              />
             ))}
           </div>
-          {hasMore && posts.length > 0 && (
+          {hasMore && (
             <div className="mt-6 flex justify-center">
               <button
                 type="button"
@@ -261,13 +273,10 @@ export default function FeedPage() {
               </button>
             </div>
           )}
-          {!loading && posts.length === 0 && (
-            <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-12 text-center text-[var(--muted)] shadow-[var(--shadow)]">
-              {tab === "following" ? "Follow people to see their posts here." : "No posts yet. Be the first to post!"}
-            </div>
-          )}
         </>
       )}
+
+      <ScrollToTopButton visible={showScrollToTop} onClick={handleScrollToTop} />
     </div>
   );
 }

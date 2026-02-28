@@ -10,6 +10,7 @@ import {
   sendEmailVerification,
   signInWithPopup,
   GoogleAuthProvider,
+  OAuthProvider,
   reload,
   type User,
   type UserCredential,
@@ -42,6 +43,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<UserCredential>;
   signUp: (email: string, password: string) => Promise<UserCredential>;
   signInWithGoogle: () => Promise<UserCredential>;
+  signInWithApple: () => Promise<UserCredential>;
   signOut: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   sendVerificationEmail: () => Promise<void>;
@@ -101,6 +103,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return signInWithPopup(auth, provider);
   }, [auth]);
 
+  const signInWithApple = useCallback(async () => {
+    if (!auth) throw new Error("Auth not configured");
+    const provider = new OAuthProvider("apple.com");
+    provider.addScope("email");
+    provider.addScope("name");
+    return signInWithPopup(auth, provider);
+  }, [auth]);
+
   const signOut = useCallback(async () => {
     if (auth) await firebaseSignOut(auth);
   }, [auth]);
@@ -134,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signUp,
     signInWithGoogle,
+    signInWithApple,
     signOut,
     sendPasswordReset,
     sendVerificationEmail,

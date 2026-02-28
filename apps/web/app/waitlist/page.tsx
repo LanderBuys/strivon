@@ -2,191 +2,197 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { getFirestoreDb } from "@/lib/firebase";
 import { PageWithBackground } from "@/components/PageWithBackground";
+import { SiteHeader } from "@/components/SiteHeader";
 
 const EMAIL_RE =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
+const LAUNCH_AT = 500;
+/** Display count starts here. Increment by 1 on each submit; update this number manually when you sync with real count. */
+const DISPLAY_COUNT_START = 105;
+
+async function submitWaitlist(email: string, country?: string) {
+  const db = getFirestoreDb();
+  if (!db) throw new Error("Waitlist is not available. Please try again later.");
+  await addDoc(collection(db, "waitlist"), {
+    email,
+    ...(country && country.trim() ? { country: country.trim().slice(0, 200) } : {}),
+    createdAt: serverTimestamp(),
+    source: "website",
+  });
+}
+
 export default function WaitlistPage() {
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+  const [country, setCountry] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [count, setCount] = useState(DISPLAY_COUNT_START);
+  const [launchAt] = useState(LAUNCH_AT);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = email.trim().toLowerCase();
     if (!trimmed) {
-      setStatus("error");
       setMessage("Please enter your email.");
+      setStatus("error");
       return;
     }
     if (!EMAIL_RE.test(trimmed)) {
+      setMessage("Please enter a valid email.");
       setStatus("error");
-      setMessage("Please enter a valid email address.");
       return;
     }
     setStatus("loading");
     setMessage("");
     try {
-      const res = await fetch("/api/waitlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmed, name: name.trim() || undefined }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setStatus("error");
-        setMessage(typeof data.error === "string" ? data.error : "Something went wrong. Please try again.");
-        return;
-      }
+      await submitWaitlist(trimmed, country.trim() || undefined);
+      setCount((c) => c + 1);
       setStatus("success");
       setEmail("");
-      setName("");
+      setCountry("");
     } catch (err) {
       setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setMessage(err instanceof Error ? err.message : "Something went wrong.");
     }
   }
 
+  const toGo = Math.max(0, launchAt - count);
+  const pct = launchAt > 0 ? Math.min(100, count / launchAt) * 100 : 0;
+  const isOpen = count >= launchAt;
+
   return (
     <PageWithBackground>
-      <header className="sticky top-0 z-10 border-b border-zinc-200/80 bg-white/85 backdrop-blur-md dark:border-zinc-700/80 dark:bg-zinc-950/85">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4 sm:px-8">
-            <Link
-              href="/"
-              className="smooth-nav-link flex items-center rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2 dark:focus:ring-zinc-500 hover:opacity-90"
-            >
-              <span className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-2xl">
-                Strivon
+      <SiteHeader />
+
+      <main className="flex min-h-[calc(100vh-4rem)] w-full flex-col items-center justify-center px-4 py-16 sm:px-6 sm:py-20">
+        <div className="flex w-full max-w-md flex-col items-center">
+        {/* One clear number */}
+        <div className="w-full text-center">
+          <>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
+              {isOpen ? "We're open" : "Signups"}
+            </p>
+            <p className="mt-3 tabular-nums leading-none text-[var(--foreground)]" style={{ fontSize: "clamp(3.5rem, 16vw, 7rem)", fontWeight: 700 }}>
+              <span className="bg-gradient-to-r from-[var(--accent)] to-blue-600 bg-clip-text text-transparent">
+                {count.toLocaleString()}
               </span>
-            </Link>
-            <nav className="flex items-center gap-1 sm:gap-2">
-              <Link
-                href="/about"
-                className="smooth-nav-link rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-              >
-                About
-              </Link>
-              <Link
-                href="/pricing"
-                className="smooth-nav-link rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-              >
-                Pricing
-              </Link>
-              <Link
-                href="/waitlist"
-                className="smooth-btn ml-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:scale-[1.02] hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-              >
-                Join the waitlist
-              </Link>
-            </nav>
-          </div>
-        </header>
-
-        <main className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-lg flex-col justify-center px-6 py-16 sm:px-8">
-          <div className="animate-fade-in-up rounded-2xl border border-zinc-200 bg-white/95 p-8 shadow-lg dark:border-zinc-700 dark:bg-zinc-900/95 sm:p-10">
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-3xl">
-              Join the waitlist
-            </h1>
-            <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-              We&apos;re not live yet. Leave your email and we&apos;ll notify you when Strivon launches.
+              <span className="font-normal text-[var(--muted)]">/{launchAt}</span>
             </p>
-
-            {status === "success" ? (
-              <div
-                className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-800 dark:bg-emerald-950/50"
-                role="status"
-                aria-live="polite"
-              >
-                <p className="font-semibold text-emerald-800 dark:text-emerald-200">
-                  You&apos;re on the list.
-                </p>
-                <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
-                  We&apos;ll email you when Strivon is ready.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setStatus("idle")}
-                  className="mt-4 text-sm font-medium text-emerald-700 underline underline-offset-2 hover:no-underline dark:text-emerald-300"
-                >
-                  Add another email
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-                <div>
-                  <label htmlFor="waitlist-email" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="waitlist-email"
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={status === "loading"}
-                    placeholder="you@example.com"
-                    className="mt-1.5 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-zinc-900 placeholder-zinc-400 transition-[border-color,box-shadow] duration-200 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="waitlist-name" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    Name <span className="text-zinc-400 dark:text-zinc-500">(optional)</span>
-                  </label>
-                  <input
-                    id="waitlist-name"
-                    type="text"
-                    autoComplete="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={status === "loading"}
-                    placeholder="Your name"
-                    className="mt-1.5 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-zinc-900 placeholder-zinc-400 transition-[border-color,box-shadow] duration-200 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500"
-                  />
-                </div>
-                {message && (
-                  <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-                    {message}
-                  </p>
-                )}
-                <button
-                  type="submit"
-                  disabled={status === "loading"}
-                  className="smooth-btn w-full rounded-full bg-zinc-900 px-6 py-3.5 text-base font-semibold text-white hover:scale-[1.02] hover:bg-zinc-800 active:scale-[0.98] disabled:opacity-70 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                >
-                  {status === "loading" ? "Joining…" : "Join waitlist"}
-                </button>
-              </form>
+            {!isOpen && (
+              <p className="mt-3 text-sm text-[var(--muted)]">
+                <span className="font-semibold text-[var(--foreground)]">{toGo.toLocaleString()}</span> to go until we open
+              </p>
             )}
+          </>
+        </div>
 
-            <p className="mt-6 text-center">
-              <Link
-                href="/"
-                className="text-sm font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-2 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+        {/* Progress bar */}
+        <div className="mt-8 w-full" role="progressbar" aria-valuenow={count} aria-valuemin={0} aria-valuemax={launchAt} aria-label={`${count} of ${launchAt} signups`}>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--accent-subtle)]">
+            <div
+              className="h-full rounded-full bg-[var(--accent)] transition-all duration-700 ease-out"
+              style={{ width: `${pct > 0 ? Math.max(pct, 2) : 0}%` }}
+            />
+          </div>
+        </div>
+
+        {/* One line */}
+        <p className="mt-6 text-center text-[var(--muted)]">
+          We'll email you once when we open. Nothing else.
+        </p>
+
+        {/* Single card: form or success */}
+        <div className="mt-10 w-full rounded-2xl border border-[var(--card-border)] bg-[var(--card)]/95 p-6 shadow-[var(--shadow-lg)] sm:p-8">
+          {status === "success" ? (
+            <div className="animate-scale-in text-center" role="status" aria-live="polite">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/20">
+                <svg className="h-7 w-7 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="mt-5 text-xl font-bold text-[var(--foreground)]">You're in.</h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                We'll email you when we hit {launchAt} and open.
+              </p>
+              <p className="mt-5 text-lg font-semibold tabular-nums text-[var(--foreground)]">
+                You're one of {count.toLocaleString()}
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="w-email" className="sr-only">Email</label>
+                <input
+                  id="w-email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={status === "loading"}
+                  placeholder="Email"
+                  className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--surface)] px-4 py-3 text-[var(--foreground)] placeholder-[var(--muted)] transition-[border-color,box-shadow] duration-200 focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 disabled:opacity-60"
+                />
+              </div>
+              <div>
+                <label htmlFor="w-country" className="sr-only">Country (optional)</label>
+                <input
+                  id="w-country"
+                  type="text"
+                  autoComplete="country-name"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  disabled={status === "loading"}
+                  placeholder="Country (optional)"
+                  className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--surface)] px-4 py-3 text-[var(--foreground)] placeholder-[var(--muted)] transition-[border-color,box-shadow] duration-200 focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 disabled:opacity-60"
+                />
+              </div>
+              {message && (
+                <p className="text-sm text-red-600 dark:text-red-400" role="alert">{message}</p>
+              )}
+              <button
+                type="submit"
+                disabled={status === "loading"}
+                className="smooth-btn w-full rounded-full bg-[var(--accent)] py-3.5 text-base font-semibold text-white shadow-lg shadow-[var(--accent)]/25 transition-all duration-200 hover:bg-[var(--accent-hover)] hover:shadow-[var(--accent)]/30 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 disabled:opacity-70 disabled:hover:translate-y-0"
               >
-                ← Back to home
-              </Link>
-            </p>
-          </div>
-        </main>
+                {status === "loading" ? "Joining…" : "Join"}
+              </button>
+            </form>
+          )}
+        </div>
 
-        <footer className="border-t border-zinc-200/80 px-6 py-8 dark:border-zinc-700/80">
-          <div className="mx-auto flex max-w-6xl justify-center gap-6 text-sm text-zinc-500 dark:text-zinc-400">
-            <Link href="/" className="transition-colors duration-200 hover:text-zinc-900 dark:hover:text-zinc-100">
-              Home
-            </Link>
-            <Link href="/pricing" className="transition-colors duration-200 hover:text-zinc-900 dark:hover:text-zinc-100">
-              Pricing
-            </Link>
-            <Link href="/privacy" className="transition-colors duration-200 hover:text-zinc-900 dark:hover:text-zinc-100">
-              Privacy
-            </Link>
-            <Link href="/terms" className="transition-colors duration-200 hover:text-zinc-900 dark:hover:text-zinc-100">
-              Terms
-            </Link>
-          </div>
-        </footer>
+        <p className="mt-8 text-center text-xs text-[var(--muted)]">
+          At {launchAt} signups we open the app. One email.
+        </p>
+        <p className="mt-2 text-center text-xs text-[var(--muted)]">
+          Available on iOS, Android, and the web at launch.
+        </p>
+        <p className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-[var(--muted)]">
+          <Link href="/" className="hover:text-[var(--foreground)] transition-colors">Home</Link>
+          <Link href="/about" className="hover:text-[var(--foreground)] transition-colors">About</Link>
+          <Link href="/pricing" className="hover:text-[var(--foreground)] transition-colors">Pricing</Link>
+        </p>
+        </div>
+      </main>
+      <footer className="border-t border-[var(--card-border)]/80 px-6 py-12 sm:px-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 sm:flex-row sm:justify-between">
+          <Link href="/" className="font-semibold text-[var(--foreground)]">Strivon</Link>
+          <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-[var(--muted)]">
+            <Link href="/about" className="smooth-nav-link hover:text-[var(--accent)]">About</Link>
+            <Link href="/pricing" className="smooth-nav-link hover:text-[var(--accent)]">Pricing</Link>
+            <Link href="/waitlist" className="smooth-nav-link hover:text-[var(--accent)]">Waitlist</Link>
+            <Link href="/privacy" className="smooth-nav-link hover:text-[var(--accent)]">Privacy</Link>
+            <Link href="/terms" className="smooth-nav-link hover:text-[var(--accent)]">Terms</Link>
+            <Link href="/contact" className="smooth-nav-link hover:text-[var(--accent)]">Contact</Link>
+          </nav>
+        </div>
+        <p className="mx-auto mt-6 max-w-6xl text-center text-xs text-[var(--muted)]">
+          © {new Date().getFullYear()} Strivon. All rights reserved.
+        </p>
+      </footer>
     </PageWithBackground>
   );
 }

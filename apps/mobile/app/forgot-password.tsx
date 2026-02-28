@@ -9,7 +9,6 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  ImageBackground,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -19,8 +18,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { sanitizeEmail } from '@/lib/utils/sanitize';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-
-const BG_IMAGE = require('@/assets/strivonbackgroundimage.png');
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -35,16 +32,14 @@ export default function ForgotPasswordScreen() {
   if (!isFirebaseEnabled) {
     return (
       <ErrorBoundary>
-        <ImageBackground source={BG_IMAGE} style={styles.bgImage} resizeMode="cover">
-          <SafeAreaView style={styles.container} edges={['top']}>
-            <View style={styles.centered}>
-              <Text style={[styles.errorText, { color: colors.secondary }]}>Password reset is not configured.</Text>
-              <TouchableOpacity style={[styles.backLink, { marginTop: Spacing.lg }]} onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/sign-in'); }}>
-                <Text style={{ color: colors.primary }}>Go back</Text>
-              </TouchableOpacity>
-            </View>
-          </SafeAreaView>
-        </ImageBackground>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+          <View style={styles.centered}>
+            <Text style={[styles.errorText, { color: colors.secondary }]}>Password reset is not configured.</Text>
+            <TouchableOpacity style={[styles.backLink, { marginTop: Spacing.lg }]} onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/sign-in'); }}>
+              <Text style={{ color: colors.primary }}>Go back</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
       </ErrorBoundary>
     );
   }
@@ -69,7 +64,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <ErrorBoundary>
-      <ImageBackground source={BG_IMAGE} style={styles.bgImage} resizeMode="cover">
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboard}>
             <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -123,13 +118,13 @@ export default function ForgotPasswordScreen() {
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
-      </ImageBackground>
+      </View>
     </ErrorBoundary>
   );
 }
 
 const styles = StyleSheet.create({
-  bgImage: { flex: 1, width: '100%', height: '100%' },
+  screen: { flex: 1 },
   container: { flex: 1 },
   keyboard: { flex: 1 },
   scrollContent: { flexGrow: 1, padding: Spacing.lg, paddingBottom: Spacing.xxl },

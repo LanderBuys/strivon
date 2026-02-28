@@ -32,9 +32,9 @@ import { sanitizeText } from '@/lib/utils/sanitize';
 
 interface ProfileEditModalProps {
   visible: boolean;
-  user: User & { bio?: string; banner?: string | null; occupation?: string; country?: string; contentWarning?: string | null };
+  user: User & { bio?: string; banner?: string | null; occupation?: string; country?: string };
   onClose: () => void;
-  onSave: (updates: Partial<User & { bio?: string; banner?: string | null; occupation?: string; country?: string; contentWarning?: string | null }>) => Promise<void>;
+  onSave: (updates: Partial<User & { bio?: string; banner?: string | null; occupation?: string; country?: string }>) => Promise<void>;
 }
 
 const getInitials = (name: string) => {
@@ -73,6 +73,7 @@ export function ProfileEditModal({ visible, user, onClose, onSave }: ProfileEdit
   const [bio, setBio] = useState('');
   const [occupation, setOccupation] = useState('');
   const [country, setCountry] = useState('');
+  const [city, setCity] = useState('');
   const [avatar, setAvatar] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -80,8 +81,6 @@ export function ProfileEditModal({ visible, user, onClose, onSave }: ProfileEdit
   const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'premium'>('free');
   const [customCreatorLabel, setCustomCreatorLabel] = useState('');
   const [featuredPostId, setFeaturedPostId] = useState<string | null>(null);
-  const [contentWarning, setContentWarning] = useState<string | null>(null);
-  const [showContentWarningOptions, setShowContentWarningOptions] = useState(false);
   const [showMediaViewer, setShowMediaViewer] = useState(false);
   const [mediaViewerItems, setMediaViewerItems] = useState<Array<{ id: string; uri: string; type: 'image' | 'video'; thumbnail?: string }>>([]);
   const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
@@ -129,9 +128,9 @@ export function ProfileEditModal({ visible, user, onClose, onSave }: ProfileEdit
     setBio(u.bio || '');
     setOccupation(u.occupation || '');
     setCountry(u.country || '');
+    setCity((u as User & { city?: string }).city || '');
     setAvatar(u.avatar || null);
     setBanner(u.banner || null);
-    setContentWarning(u.contentWarning ?? null);
     setCustomCreatorLabel(u.label || '');
   };
 
@@ -247,9 +246,9 @@ export function ProfileEditModal({ visible, user, onClose, onSave }: ProfileEdit
         bio: sanitizeText(bio, 500) || undefined,
         occupation: sanitizeText(occupation, 50) || undefined,
         country: sanitizeText(country, 60) || undefined,
+        city: sanitizeText(city, 60) || undefined,
         avatar: avatar || undefined,
         banner: banner || undefined,
-        contentWarning: contentWarning ? sanitizeText(contentWarning, 100) : null,
         label: subscriptionTier === 'premium' ? sanitizeText(customCreatorLabel, 50) || undefined : user.label,
       });
       haptics.success();
@@ -333,132 +332,16 @@ export function ProfileEditModal({ visible, user, onClose, onSave }: ProfileEdit
               handle={handle}
               occupation={occupation}
               country={country}
+              city={city}
               bio={bio}
               colors={colors}
               onChangeName={setName}
               onChangeHandle={setHandle}
               onChangeOccupation={setOccupation}
               onChangeCountry={setCountry}
+              onChangeCity={setCity}
               onChangeBio={setBio}
             />
-
-            {/* Content Warning Section */}
-            <View style={styles.contentWarningSection}>
-              <View style={styles.sectionDivider}>
-                <View style={[styles.sectionDividerLine, { backgroundColor: colors.divider }]} />
-                <View style={styles.sectionDividerContent}>
-                  <Ionicons name="warning" size={14} color={colors.secondary} />
-                  <Text style={[styles.sectionDividerText, { color: colors.secondary }]}>
-                    Content Warning
-                  </Text>
-                </View>
-                <View style={[styles.sectionDividerLine, { backgroundColor: colors.divider }]} />
-              </View>
-
-              <View style={styles.field}>
-                <Text style={[styles.label, { color: colors.text }]}>
-                  Mark your profile with a content warning
-                </Text>
-                <Text style={[styles.hint, { color: colors.secondary, marginBottom: Spacing.md }]}>
-                  This warning will be displayed to viewers before they see your profile content
-                </Text>
-
-                {/* Quick Preset Buttons */}
-                <View style={styles.presetButtonsContainer}>
-                  {[
-                    'Mature Content',
-                    'Sensitive Topics',
-                    'Strong Language',
-                    'Violence',
-                    'NSFW Content',
-                  ].map((option) => (
-                    <TouchableOpacity
-                      key={option}
-                      onPress={() => {
-                        haptics.light();
-                        if (contentWarning === option) {
-                          setContentWarning(null);
-                        } else {
-                          setContentWarning(option);
-                        }
-                      }}
-                      activeOpacity={0.7}
-                      style={[styles.presetButton, {
-                        backgroundColor: contentWarning === option 
-                          ? colors.error + '15' 
-                          : colors.surface,
-                        borderColor: contentWarning === option 
-                          ? colors.error 
-                          : colors.cardBorder,
-                      }]}
-                    >
-                      <Text style={[styles.presetButtonText, { 
-                        color: contentWarning === option 
-                          ? colors.error 
-                          : colors.text 
-                      }]}>
-                        {option}
-                      </Text>
-                      {contentWarning === option && (
-                        <Ionicons name="checkmark-circle" size={18} color={colors.error} style={{ marginLeft: Spacing.xs }} />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                {/* Custom Input */}
-                <View style={styles.field}>
-                  <Text style={[styles.subLabel, { color: colors.secondary, marginTop: Spacing.md }]}>
-                    Or enter custom warning text
-                  </Text>
-                  <TextInput
-                    style={[styles.input, {
-                      backgroundColor: colors.surface,
-                      color: colors.text,
-                      borderColor: contentWarning && !['Mature Content', 'Sensitive Topics', 'Strong Language', 'Violence', 'NSFW Content'].includes(contentWarning)
-                        ? colors.error
-                        : colors.cardBorder,
-                    }]}
-                    value={contentWarning && !['Mature Content', 'Sensitive Topics', 'Strong Language', 'Violence', 'NSFW Content'].includes(contentWarning)
-                      ? contentWarning
-                      : ''}
-                    onChangeText={(text) => {
-                      const trimmed = text.trim();
-                      setContentWarning(trimmed || null);
-                    }}
-                    placeholder="e.g., Contains mature themes, graphic content, etc."
-                    placeholderTextColor={colors.secondary}
-                    maxLength={100}
-                  />
-                </View>
-
-                {/* Current Warning Display */}
-                {contentWarning && (
-                  <View style={[styles.contentWarningActiveContainer, {
-                    backgroundColor: colors.error + '08',
-                    borderColor: colors.error + '20',
-                    marginTop: Spacing.sm,
-                  }]}>
-                    <View style={styles.contentWarningActiveHeader}>
-                      <Ionicons name="warning" size={18} color={colors.error} />
-                      <Text style={[styles.contentWarningActiveText, { color: colors.text, flex: 1 }]}>
-                        {contentWarning}
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => {
-                          haptics.light();
-                          setContentWarning(null);
-                        }}
-                        activeOpacity={0.7}
-                        style={styles.removeWarningButton}
-                      >
-                        <Ionicons name="close-circle" size={22} color={colors.error} />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                )}
-              </View>
-            </View>
 
           </ScrollView>
           </View>
@@ -962,45 +845,6 @@ const styles = StyleSheet.create({
   modeButtonText: {
     fontSize: 14,
     fontWeight: '600',
-  },
-  contentWarningSection: {
-    paddingHorizontal: Spacing.md,
-    marginTop: Spacing.xl,
-  },
-  presetButtonsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  presetButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  presetButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  contentWarningActiveContainer: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  contentWarningActiveHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  contentWarningActiveText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  removeWarningButton: {
-    marginLeft: 'auto',
   },
   videoPlayOverlay: {
     position: 'absolute',

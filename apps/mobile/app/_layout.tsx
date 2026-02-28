@@ -1,15 +1,16 @@
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, Pressable, AppState, StyleSheet, Platform } from 'react-native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { notificationService, type InAppNotificationPayload } from '@/lib/services/notificationService';
 import { ThemeProvider } from '@/contexts/ThemeContext';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { Colors } from '@/constants/theme';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -19,15 +20,29 @@ import '@/lib/i18n';
 
 const IN_APP_BANNER_AUTO_DISMISS_MS = 4500;
 
+const AUTH_ROUTES = new Set(['sign-in', 'sign-up', 'forgot-password', 'onboarding']);
+
 function LayoutContent() {
   const offline = useOffline();
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
+  const segments = useSegments();
+  const { user, loading: authLoading, isFirebaseEnabled } = useAuth();
   const notificationListener = useRef<Notifications.Subscription | null>(null);
   const responseListener = useRef<Notifications.Subscription | null>(null);
   const [inAppNotification, setInAppNotification] = useState<InAppNotificationPayload | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const appStateRef = useRef(AppState.currentState);
+
+  // When app opens or restores a route: if not logged in, always go to sign-in (don't show complete-profile etc.)
+  useEffect(() => {
+    if (authLoading || !isFirebaseEnabled || user) return;
+    const segs = segments as string[];
+    const first = segs[0];
+    const isIndex = !segs.length || first === 'index';
+    if (isIndex || (first && AUTH_ROUTES.has(first))) return;
+    router.replace('/sign-in');
+  }, [authLoading, isFirebaseEnabled, user, segments]);
 
   const dismissInApp = useCallback(() => {
     if (dismissTimerRef.current) {

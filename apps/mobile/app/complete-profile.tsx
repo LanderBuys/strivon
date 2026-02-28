@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,23 +9,26 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  ImageBackground,
   Image,
   Alert,
+  Modal,
+  FlatList,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import { getFirestoreUser, updateFirestoreUser } from '@/lib/firestore/users';
+import { getFirestoreUser, isProfileIncomplete, updateFirestoreUser } from '@/lib/firestore/users';
+import { COUNTRIES, getCitiesForCountry } from '@/lib/data/locations';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { uploadProfileImage } from '@/lib/services/profileImageUpload';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-
-const BG_IMAGE = require('@/assets/strivonbackgroundimage.png');
+import { LoadingScreen } from '@/components/LoadingScreen';
 
 function normalizeHandle(input: string): string {
   return input.replace(/^@/, '').replace(/[^a-z0-9_]/gi, '').slice(0, 30).toLowerCase();
@@ -35,18 +38,49 @@ export default function CompleteProfileScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { user, isFirebaseEnabled } = useAuth();
+  const { user, signOut, isFirebaseEnabled, loading: authLoading } = useAuth();
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [age, setAge] = useState('');
   const [occupation, setOccupation] = useState('');
   const [country, setCountry] = useState('');
+  const [city, setCity] = useState('');
+  const [pickerOpen, setPickerOpen] = useState<'country' | 'city' | null>(null);
+  const [pickerSearch, setPickerSearch] = useState('');
   const [bio, setBio] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [bannerUri, setBannerUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [error, setError] = useState('');
+  const [backgroundLoaded, setBackgroundLoaded] = useState(false);
+  const [loadingExiting, setLoadingExiting] = useState(false);
+
+  const handleBackgroundLoad = () => {
+    setBackgroundLoaded(true);
+    setLoadingExiting(true);
+  };
+
+  const cityOptions = useMemo(() => getCitiesForCountry(country), [country]);
+  const filteredCountries = useMemo(() => {
+    const q = pickerSearch.trim().toLowerCase();
+    if (!q) return COUNTRIES;
+    return COUNTRIES.filter((c) => c.toLowerCase().includes(q));
+  }, [pickerSearch]);
+  const filteredCities = useMemo(() => {
+    const q = pickerSearch.trim().toLowerCase();
+    if (!q) return cityOptions;
+    return cityOptions.filter((c) => c.toLowerCase().includes(q));
+  }, [cityOptions, pickerSearch]);
+
+  const handleOpenPicker = (type: 'country' | 'city') => {
+    setPickerSearch('');
+    setPickerOpen(type);
+  };
+  const handleClosePicker = () => {
+    setPickerOpen(null);
+    setPickerSearch('');
+  };
 
   useEffect(() => {
     if (!user?.uid || !isFirebaseEnabled) {
@@ -62,6 +96,7 @@ export default function CompleteProfileScreen() {
           setUsername(h);
           setOccupation(profile.occupation || '');
           setCountry(profile.country || '');
+          setCity(profile.city || '');
           setBio(profile.bio || '');
           if (profile.avatar) setAvatarUri(profile.avatar);
           if (profile.banner) setBannerUri(profile.banner);
@@ -73,6 +108,28 @@ export default function CompleteProfileScreen() {
       }
     })();
   }, [user?.uid, isFirebaseEnabled]);
+
+  // If app opens to this screen (e.g. restored route) but user is not logged in, go to sign-in immediately
+  useEffect(() => {
+    if (isFirebaseEnabled && !authLoading && !user) {
+      router.replace('/sign-in');
+    }
+  }, [isFirebaseEnabled, authLoading, user, router]);
+
+  // If profile is already complete, go to app (avoid getting stuck on this screen)
+  useEffect(() => {
+    if (!isFirebaseEnabled || !user?.uid || initializing) return;
+    let mounted = true;
+    isProfileIncomplete(user.uid).then((incomplete) => {
+      if (!mounted) return;
+      if (!incomplete) router.replace('/(tabs)');
+    });
+    return () => { mounted = false; };
+  }, [isFirebaseEnabled, user?.uid, initializing, router]);
+
+  // Don't show this screen until auth is resolved; if not logged in redirect (handled in effect above)
+  if (isFirebaseEnabled && authLoading) return null;
+  if (isFirebaseEnabled && !user) return null;
 
   const pickImage = async (kind: 'avatar' | 'banner') => {
     try {
@@ -168,6 +225,7 @@ export default function CompleteProfileScreen() {
         ...(ageNum !== undefined && !Number.isNaN(ageNum) ? { age: ageNum } : {}),
         occupation: occupation.trim() || undefined,
         country: country.trim() || undefined,
+        city: city.trim() || undefined,
         bio: bio.trim().slice(0, 500) || undefined,
         ...(avatarUrl ? { avatar: avatarUrl } : {}),
         ...(bannerUrl ? { banner: bannerUrl } : {}),
@@ -184,7 +242,8 @@ export default function CompleteProfileScreen() {
   if (!isFirebaseEnabled || !user) {
     return (
       <ErrorBoundary>
-        <ImageBackground source={BG_IMAGE} style={styles.bgImage} resizeMode="cover">
+        <View style={[styles.screen, { backgroundColor: colors.background }]}>
+          <ExpoImage source={require('@/assets/strivonbackgroundimage.png')} style={styles.backgroundImage} contentFit="cover" />
           <SafeAreaView style={styles.container} edges={['top']}>
             <View style={styles.centered}>
               <Text style={[styles.errorText, { color: colors.secondary }]}>Please sign in first.</Text>
@@ -193,27 +252,45 @@ export default function CompleteProfileScreen() {
               </TouchableOpacity>
             </View>
           </SafeAreaView>
-        </ImageBackground>
+        </View>
       </ErrorBoundary>
     );
   }
 
   if (initializing) {
     return (
-      <ImageBackground source={BG_IMAGE} style={styles.bgImage} resizeMode="cover">
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        <ExpoImage source={require('@/assets/strivonbackgroundimage.png')} style={styles.backgroundImage} contentFit="cover" />
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.centered}>
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
         </SafeAreaView>
-      </ImageBackground>
+      </View>
     );
   }
 
   return (
     <ErrorBoundary>
-      <ImageBackground source={BG_IMAGE} style={styles.bgImage} resizeMode="cover">
-        <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        <ExpoImage
+          source={require('@/assets/strivonbackgroundimage.png')}
+          style={styles.backgroundImage}
+          contentFit="cover"
+          transition={0}
+          onLoad={handleBackgroundLoad}
+        />
+        {(!backgroundLoaded || loadingExiting) && (
+          <View style={StyleSheet.absoluteFill}>
+            <LoadingScreen animated visible={!backgroundLoaded} onExitComplete={() => setLoadingExiting(false)} />
+          </View>
+        )}
+        {backgroundLoaded && (
+        <SafeAreaView
+          style={[styles.container, loadingExiting && styles.formHidden]}
+          edges={['top']}
+          pointerEvents={loadingExiting ? 'none' : 'auto'}
+        >
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboard}>
             <ScrollView
               contentContainerStyle={styles.scrollContent}
@@ -222,7 +299,10 @@ export default function CompleteProfileScreen() {
             >
               <View style={styles.header}>
                 <TouchableOpacity
-                  onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/sign-in'); }}
+                  onPress={async () => {
+                    await signOut();
+                    router.replace('/sign-in');
+                  }}
                   hitSlop={12}
                   style={styles.backBtn}
                   accessibilityLabel="Go back"
@@ -325,15 +405,106 @@ export default function CompleteProfileScreen() {
                     editable={!loading}
                   />
 
-                  <Text style={[styles.label, { color: colors.text, marginTop: Spacing.md }]}>Country (optional)</Text>
-                  <TextInput
-                    style={[styles.input, { color: colors.text, backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
-                    placeholder="e.g. Italy, United States"
-                    placeholderTextColor={colors.secondary}
-                    value={country}
-                    onChangeText={setCountry}
-                    editable={!loading}
-                  />
+                  <Text style={[styles.label, { color: colors.text, marginTop: Spacing.md }]}>Country (recommended for local discovery)</Text>
+                  <TouchableOpacity
+                    style={[styles.pickerTouchable, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
+                    onPress={() => handleOpenPicker('country')}
+                    disabled={loading}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.pickerText, { color: country ? colors.text : colors.secondary }]}>
+                      {country || 'Select country'}
+                    </Text>
+                    <Ionicons name="chevron-down" size={20} color={colors.secondary} />
+                  </TouchableOpacity>
+
+                  <Text style={[styles.label, { color: colors.text, marginTop: Spacing.lg }]}>City (optional)</Text>
+                  <TouchableOpacity
+                    style={[styles.pickerTouchable, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
+                    onPress={() => handleOpenPicker('city')}
+                    disabled={loading || !country}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.pickerText, { color: city ? colors.text : colors.secondary }]}>
+                      {city || (country ? 'Select city' : 'Select country first')}
+                    </Text>
+                    <Ionicons name="chevron-down" size={20} color={colors.secondary} />
+                  </TouchableOpacity>
+
+                  <Modal visible={pickerOpen !== null} transparent animationType="fade" onRequestClose={handleClosePicker}>
+                    <Pressable style={styles.modalOverlay} onPress={handleClosePicker}>
+                      <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+                        <View style={[styles.modalHeader, { borderBottomColor: colors.divider }]}>
+                          <Text style={[styles.modalTitle, { color: colors.text }]}>
+                            {pickerOpen === 'country' ? 'Select country' : 'Select city'}
+                          </Text>
+                          <TouchableOpacity onPress={handleClosePicker} hitSlop={12}>
+                            <Ionicons name="close" size={24} color={colors.text} />
+                          </TouchableOpacity>
+                        </View>
+                        <View style={[styles.searchWrap, { borderBottomColor: colors.divider }]}>
+                          <Ionicons name="search-outline" size={20} color={colors.secondary} style={styles.searchIcon} />
+                          <TextInput
+                            style={[styles.searchInput, { color: colors.text, backgroundColor: colors.inputBackground }]}
+                            placeholder={pickerOpen === 'country' ? 'Search countries...' : 'Search cities...'}
+                            placeholderTextColor={colors.secondary}
+                            value={pickerSearch}
+                            onChangeText={setPickerSearch}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                          />
+                        </View>
+                        {pickerOpen === 'country' && (
+                          <FlatList
+                            data={filteredCountries}
+                            keyExtractor={(item) => item}
+                            style={styles.pickerList}
+                            ListEmptyComponent={
+                              <View style={styles.emptyPicker}>
+                                <Text style={[styles.emptyPickerText, { color: colors.secondary }]}>
+                                  {pickerSearch.trim() ? 'No countries match your search' : 'No countries'}
+                                </Text>
+                              </View>
+                            }
+                            renderItem={({ item }) => (
+                              <TouchableOpacity
+                                style={[styles.optionRow, item === country && { backgroundColor: colors.primary + '18' }]}
+                                onPress={() => { setCountry(item); setCity(''); handleClosePicker(); }}
+                                activeOpacity={0.7}
+                              >
+                                <Text style={[styles.optionText, { color: colors.text }]}>{item}</Text>
+                                {item === country && <Ionicons name="checkmark" size={22} color={colors.primary} />}
+                              </TouchableOpacity>
+                            )}
+                          />
+                        )}
+                        {pickerOpen === 'city' && (
+                          <FlatList
+                            data={filteredCities}
+                            keyExtractor={(item) => item}
+                            style={styles.pickerList}
+                            ListEmptyComponent={
+                              <View style={styles.emptyPicker}>
+                                <Text style={[styles.emptyPickerText, { color: colors.secondary }]}>
+                                  {pickerSearch.trim() ? 'No cities match your search' : 'No cities listed for this country'}
+                                </Text>
+                              </View>
+                            }
+                            renderItem={({ item }) => (
+                              <TouchableOpacity
+                                style={[styles.optionRow, item === city && { backgroundColor: colors.primary + '18' }]}
+                                onPress={() => { setCity(item); handleClosePicker(); }}
+                                activeOpacity={0.7}
+                              >
+                                <Text style={[styles.optionText, { color: colors.text }]}>{item}</Text>
+                                {item === city && <Ionicons name="checkmark" size={22} color={colors.primary} />}
+                              </TouchableOpacity>
+                            )}
+                          />
+                        )}
+                      </View>
+                    </Pressable>
+                  </Modal>
 
                   <Text style={[styles.label, { color: colors.text, marginTop: Spacing.md }]}>Bio (optional)</Text>
                   <TextInput
@@ -364,13 +535,19 @@ export default function CompleteProfileScreen() {
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
-      </ImageBackground>
+        )}
+      </View>
     </ErrorBoundary>
   );
 }
 
 const styles = StyleSheet.create({
-  bgImage: { flex: 1, width: '100%', height: '100%' },
+  screen: { flex: 1 },
+  formHidden: { opacity: 0 },
+  backgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.6,
+  },
   container: { flex: 1 },
   keyboard: { flex: 1 },
   scrollContent: { flexGrow: 1, padding: Spacing.lg, paddingBottom: Spacing.xxl },
@@ -425,6 +602,86 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     paddingRight: Spacing.md,
     fontSize: Typography.base,
+  },
+  pickerTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    minHeight: 48,
+  },
+  pickerText: {
+    fontSize: Typography.base,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  searchIcon: {
+    marginRight: Spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  pickerList: {
+    maxHeight: 360,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md + 2,
+  },
+  optionText: {
+    fontSize: 16,
+  },
+  emptyPicker: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+  },
+  emptyPickerText: {
+    fontSize: 15,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  toggleLabelBlock: {
+    flex: 1,
   },
   photoRow: {
     flexDirection: 'row',

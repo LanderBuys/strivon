@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,33 +9,53 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  ImageBackground,
 } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Link } from 'expo-router';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
+import { isProfileIncomplete } from '@/lib/firestore/users';
+import { getFirebaseProjectId } from '@/lib/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { sanitizeEmail } from '@/lib/utils/sanitize';
 import { validatePassword } from '@/lib/validation/schemas';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-
-const BG_IMAGE = require('@/assets/strivonbackgroundimage.png');
+import { LoadingScreen } from '@/components/LoadingScreen';
 
 export default function SignUpScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { signUp, signInWithGoogle, isFirebaseEnabled, isGoogleSignInEnabled } = useAuth();
+  const { user, signUp, signInWithGoogle, signInWithApple, isFirebaseEnabled } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [error, setError] = useState('');
+  const [backgroundLoaded, setBackgroundLoaded] = useState(false);
+  const [loadingExiting, setLoadingExiting] = useState(false);
+
+  const handleBackgroundLoad = () => {
+    setBackgroundLoaded(true);
+    setLoadingExiting(true);
+  };
+
+  // If already signed in, go to app (or complete-profile if profile incomplete)
+  useEffect(() => {
+    if (!isFirebaseEnabled || !user?.uid) return;
+    let mounted = true;
+    isProfileIncomplete(user.uid).then((incomplete) => {
+      if (!mounted) return;
+      router.replace(incomplete ? '/complete-profile' : '/(tabs)');
+    });
+    return () => { mounted = false; };
+  }, [isFirebaseEnabled, user?.uid, router]);
 
   if (!isFirebaseEnabled) {
     return (
@@ -73,10 +93,22 @@ export default function SignUpScreen() {
     setLoading(true);
     try {
       const cred = await signUp(e, password);
-      router.replace(cred.user.emailVerified ? '/complete-profile' : '/verify-email');
+      const uid = cred?.user?.uid;
+      if (uid) {
+        const incomplete = await isProfileIncomplete(uid);
+        if (!incomplete) {
+          router.replace('/(tabs)');
+        } else {
+          router.replace(cred.user.emailVerified ? '/complete-profile' : '/verify-email');
+        }
+      } else {
+        router.replace(cred.user.emailVerified ? '/complete-profile' : '/verify-email');
+      }
     } catch (err: any) {
+      const code = err?.code as string | undefined;
       const message = err?.message ?? 'Sign-up failed.';
-      setError(message.includes('auth/') ? mapAuthError(message) : message);
+      const projectId = (await import('@/lib/firebase').then((m) => m.getFirebaseProjectId())) ?? 'unknown';
+      setError(getAuthErrorMessage(code, message, projectId));
     } finally {
       setLoading(false);
     }
@@ -86,8 +118,14 @@ export default function SignUpScreen() {
     setError('');
     setGoogleLoading(true);
     try {
-      await signInWithGoogle();
-      router.replace('/(tabs)');
+      const cred = await signInWithGoogle();
+      const uid = cred?.user?.uid;
+      if (uid) {
+        const incomplete = await isProfileIncomplete(uid);
+        router.replace(incomplete ? '/complete-profile' : '/(tabs)');
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (err: any) {
       const msg = err?.message ?? 'Google sign-in failed.';
       setError(msg === 'Sign-in was cancelled.' ? '' : msg);
@@ -96,10 +134,50 @@ export default function SignUpScreen() {
     }
   };
 
+  const handleAppleSignIn = async () => {
+    setError('');
+    setAppleLoading(true);
+    try {
+      const cred = await signInWithApple();
+      const uid = cred?.user?.uid;
+      if (uid) {
+        const incomplete = await isProfileIncomplete(uid);
+        router.replace(incomplete ? '/complete-profile' : '/(tabs)');
+      } else {
+        router.replace('/(tabs)');
+      }
+    } catch (err: any) {
+      const msg = err?.message ?? 'Apple sign-in failed.';
+      setError(msg === 'Sign-in was cancelled.' ? '' : msg);
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
   return (
     <ErrorBoundary>
-      <ImageBackground source={BG_IMAGE} style={styles.bgImage} resizeMode="cover">
-        <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        <ExpoImage
+          source={require('@/assets/strivonbackgroundimage.png')}
+          style={styles.backgroundImage}
+          contentFit="cover"
+          transition={0}
+          onLoad={handleBackgroundLoad}
+        />
+        {(!backgroundLoaded || loadingExiting) && (
+          <View style={StyleSheet.absoluteFill}>
+            <LoadingScreen animated visible={!backgroundLoaded} onExitComplete={() => setLoadingExiting(false)} />
+          </View>
+        )}
+        {backgroundLoaded && (
+        <SafeAreaView
+          style={[
+            styles.container,
+            loadingExiting && styles.formHidden,
+          ]}
+          edges={['top']}
+          pointerEvents={loadingExiting ? 'none' : 'auto'}
+        >
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboard}>
             <ScrollView
               contentContainerStyle={styles.scrollContent}
@@ -108,14 +186,6 @@ export default function SignUpScreen() {
             >
               <View style={styles.centeredContent}>
                 <View style={styles.header}>
-                  <TouchableOpacity
-                    onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/sign-in'); }}
-                    hitSlop={12}
-                    style={styles.backBtn}
-                    accessibilityLabel="Go back"
-                  >
-                    <Ionicons name="arrow-back" size={24} color={colors.text} />
-                  </TouchableOpacity>
                   <Text style={[styles.title, { color: colors.text }]}>Create account</Text>
                   <Text style={[styles.subtitle, { color: colors.secondary }]}>Join Strivon</Text>
                 </View>
@@ -188,22 +258,36 @@ export default function SignUpScreen() {
             >
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Sign up</Text>}
             </TouchableOpacity>
-            {isGoogleSignInEnabled ? (
+            <TouchableOpacity
+              style={[styles.googleButton, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
+              onPress={handleGoogleSignIn}
+              disabled={loading || googleLoading || appleLoading}
+            >
+              {googleLoading ? (
+                <ActivityIndicator color={colors.text} />
+              ) : (
+                <>
+                  <Ionicons name="logo-google" size={20} color={colors.text} style={styles.googleIcon} />
+                  <Text style={[styles.googleButtonText, { color: colors.text }]}>Continue with Google</Text>
+                </>
+              )}
+            </TouchableOpacity>
+            {Platform.OS === 'ios' && (
               <TouchableOpacity
                 style={[styles.googleButton, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
-                onPress={handleGoogleSignIn}
-                disabled={loading || googleLoading}
+                onPress={handleAppleSignIn}
+                disabled={loading || googleLoading || appleLoading}
               >
-                {googleLoading ? (
+                {appleLoading ? (
                   <ActivityIndicator color={colors.text} />
                 ) : (
                   <>
-                    <Ionicons name="logo-google" size={20} color={colors.text} style={styles.googleIcon} />
-                    <Text style={[styles.googleButtonText, { color: colors.text }]}>Continue with Google</Text>
+                    <Ionicons name="logo-apple" size={20} color={colors.text} style={styles.googleIcon} />
+                    <Text style={[styles.googleButtonText, { color: colors.text }]}>Continue with Apple</Text>
                   </>
                 )}
               </TouchableOpacity>
-            ) : null}
+            )}
             <View style={styles.footer}>
               <Text style={[styles.footerText, { color: colors.secondary }]}>Already have an account? </Text>
               <Link href="/sign-in" asChild>
@@ -212,44 +296,70 @@ export default function SignUpScreen() {
                 </TouchableOpacity>
               </Link>
             </View>
+            {getFirebaseProjectId() ? (
+              <Text style={[styles.projectHint, { color: colors.textMuted }]}>
+                Firebase project: {getFirebaseProjectId()}
+              </Text>
+            ) : null}
           </View>
                 </View>
               </View>
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
-      </ImageBackground>
+        )}
+      </View>
     </ErrorBoundary>
   );
 }
 
+function getAuthErrorMessage(code: string | undefined, message: string, projectId?: string): string {
+  const projectHint =
+    projectId && projectId !== 'unknown'
+      ? ` App is using Firebase project "${projectId}" — in Firebase Console open that exact project → Authentication → Users to see or delete this email.`
+      : '';
+
+  if (code === 'auth/email-already-in-use' || message.includes('auth/email-already-in-use')) {
+    return 'This email is already in use in Firebase Authentication.' + projectHint;
+  }
+  if (code === 'auth/invalid-email' || message.includes('auth/invalid-email')) return 'Please enter a valid email.';
+  if (code === 'auth/weak-password' || message.includes('auth/weak-password')) {
+    return 'Please choose a stronger password (min 8 characters).';
+  }
+  if (code === 'auth/network-request-failed' || message.includes('auth/network-request-failed')) {
+    return 'Network error. Check your connection.';
+  }
+  if (code && code.startsWith('auth/')) return 'Sign-up failed. Please try again.' + (projectHint || '');
+  return message;
+}
+
 function mapAuthError(message: string): string {
-  if (message.includes('auth/email-already-in-use')) return 'This email is already in use.';
-  if (message.includes('auth/invalid-email')) return 'Please enter a valid email.';
-  if (message.includes('auth/weak-password')) return 'Please choose a stronger password (min 8 characters).';
-  if (message.includes('auth/network-request-failed')) return 'Network error. Check your connection.';
-  return 'Sign-up failed. Please try again.';
+  return getAuthErrorMessage(undefined, message);
 }
 
 const styles = StyleSheet.create({
-  bgImage: { flex: 1, width: '100%', height: '100%' },
+  screen: { flex: 1 },
+  formHidden: { opacity: 0 },
+  backgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.6,
+  },
   container: { flex: 1 },
   keyboard: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 16,
+    paddingVertical: Spacing.xl,
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xxl,
   },
-  centeredContent: { width: '100%', maxWidth: 400, alignSelf: 'center' },
+  centeredContent: { width: '100%', maxWidth: 400, alignSelf: 'center', alignItems: 'center' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
-  backBtn: { marginBottom: Spacing.sm, alignSelf: 'flex-start' },
-  header: { marginTop: 40, marginBottom: Spacing.lg, marginLeft: 8, alignItems: 'flex-start' },
-  title: { fontSize: Typography.xxl, fontWeight: '700', marginBottom: Spacing.xs, textAlign: 'left' },
-  subtitle: { fontSize: Typography.base, textAlign: 'left' },
+  header: { marginTop: -72, marginBottom: Spacing.lg, alignItems: 'center' },
+  title: { fontSize: Typography.xxl, fontWeight: '700', marginBottom: Spacing.xs, textAlign: 'center' },
+  subtitle: { fontSize: Typography.base, textAlign: 'center' },
   formCard: {
+    alignSelf: 'stretch',
     marginTop: Spacing.sm,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -307,5 +417,6 @@ const styles = StyleSheet.create({
   googleButtonText: { fontSize: Typography.base, fontWeight: '600' },
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: Spacing.xl },
   footerText: { fontSize: Typography.sm },
+  projectHint: { fontSize: 11, marginTop: Spacing.sm, textAlign: 'center' },
   backLink: { padding: Spacing.md },
 });

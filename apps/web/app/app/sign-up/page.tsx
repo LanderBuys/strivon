@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -9,12 +8,13 @@ import { sanitizeEmail, mapAuthError } from "@/lib/utils/auth";
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { signUp, signInWithGoogle, isFirebaseEnabled, isGoogleSignInEnabled } = useAuth();
+  const { signUp, signInWithGoogle, signInWithApple, isFirebaseEnabled } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState("");
 
@@ -71,12 +71,30 @@ export default function SignUpPage() {
     }
   };
 
+  const handleAppleSignIn = async () => {
+    setError("");
+    setAppleLoading(true);
+    try {
+      await signInWithApple();
+      const { getFirebaseAuth } = await import("@/lib/firebase");
+      const { isProfileIncomplete } = await import("@/lib/firestore/users");
+      const uid = getFirebaseAuth()?.currentUser?.uid ?? "";
+      const incomplete = uid ? await isProfileIncomplete(uid) : false;
+      router.replace(incomplete ? "/app/complete-profile" : "/app/feed");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Apple sign-in failed.";
+      if (msg !== "Sign-in was cancelled.") setError(msg);
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-zinc-900">
-      <Image src="/strivonbackgroundimagedesktop.jpeg" alt="" fill className="object-cover opacity-60" priority />
-      <div className="relative flex min-h-screen items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <div className="rounded-2xl border border-white/10 bg-white/95 p-8 shadow-xl backdrop-blur dark:bg-zinc-900/95 dark:border-zinc-700">
+      <div className="auth-bg-inline absolute inset-0 opacity-60" aria-hidden />
+      <div className="relative flex min-h-screen items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-md -translate-y-8">
+          <div className="rounded-2xl border border-white/10 bg-white/95 p-6 shadow-xl backdrop-blur dark:bg-zinc-900/95 dark:border-zinc-700 sm:p-8">
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">Create account</h1>
             <p className="mt-1 text-zinc-600 dark:text-zinc-400">Join Strivon</p>
 
@@ -96,7 +114,7 @@ export default function SignUpPage() {
                   placeholder="you@example.com"
                   className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-zinc-900 placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                   autoComplete="email"
-                  disabled={loading || googleLoading}
+                  disabled={loading || googleLoading || appleLoading}
                 />
               </div>
               <div>
@@ -110,7 +128,7 @@ export default function SignUpPage() {
                     placeholder="At least 6 characters"
                     className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 pr-10 text-zinc-900 placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                     autoComplete="new-password"
-                    disabled={loading || googleLoading}
+                    disabled={loading || googleLoading || appleLoading}
                   />
                   <button
                     type="button"
@@ -136,26 +154,32 @@ export default function SignUpPage() {
                   placeholder="Repeat password"
                   className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-zinc-900 placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                   autoComplete="new-password"
-                  disabled={loading || googleLoading}
+                  disabled={loading || googleLoading || appleLoading}
                 />
               </div>
               <button
                 type="submit"
-                disabled={loading || googleLoading}
+                disabled={loading || googleLoading || appleLoading}
                 className="w-full rounded-xl bg-blue-600 py-3.5 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
               >
                 {loading ? <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : "Sign up"}
               </button>
-              {isGoogleSignInEnabled && (
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={loading || googleLoading}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-zinc-50 py-3.5 font-semibold text-zinc-800 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-60"
-                >
-                  {googleLoading ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent" /> : "Continue with Google"}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={loading || googleLoading || appleLoading}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-zinc-50 py-3.5 font-semibold text-zinc-800 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-60"
+              >
+                {googleLoading ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent" /> : "Continue with Google"}
+              </button>
+              <button
+                type="button"
+                onClick={handleAppleSignIn}
+                disabled={loading || googleLoading || appleLoading}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-zinc-50 py-3.5 font-semibold text-zinc-800 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-60"
+              >
+                {appleLoading ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent" /> : "Continue with Apple"}
+              </button>
               <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
                 Already have an account?{" "}
                 <Link href="/app/sign-in" className="font-semibold text-blue-600 hover:underline dark:text-blue-400">Sign in</Link>

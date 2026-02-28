@@ -7,14 +7,15 @@
   "overrides": {
     "minimatch": ">=10.2.1"
   },
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": ["apps/*"],
   "scripts": {
     "start": "npm run dev:mobile",
-    "dev:mobile": "npm --prefix apps/mobile start",
+    "dev:mobile": "cross-env EXPO_NO_CACHE=1 npm --prefix apps/mobile run start:offline",
     "dev:web": "npm --prefix apps/web run dev",
     "deploy:firestore": "firebase deploy --only firestore"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "@types/react": "~19.1.10",
     "firebase-admin": "^13.6.1",
     "firebase-tools": "^13.0.0",

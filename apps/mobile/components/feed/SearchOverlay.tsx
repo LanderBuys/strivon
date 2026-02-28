@@ -8,7 +8,11 @@ import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useCurrentUserId } from '@/hooks/useCurrentUserId';
+import { getFirestoreUser } from '@/lib/firestore/users';
 import { Post, User, Space } from '@/types/post';
+
+export type SearchLocationFilter = 'all' | 'near_me' | 'same_country';
 
 const SEARCH_HISTORY_KEY = '@strivon_search_history';
 
@@ -57,6 +61,9 @@ export function SearchOverlay({ visible, query, onClose, onSelectResult, onSearc
   const insets = useSafeAreaInsets();
   const haptics = useHapticFeedback();
   const debouncedQuery = useDebounce(query, 300);
+  const currentUserId = useCurrentUserId();
+  const [currentUserLocation, setCurrentUserLocation] = useState<{ country?: string; state?: string }>({});
+  const [locationFilter, setLocationFilter] = useState<SearchLocationFilter>('all');
   const [results, setResults] = useState<{ users: User[]; posts: Post[]; spaces: Space[] }>({
     users: [],
     posts: [],
@@ -67,6 +74,13 @@ export function SearchOverlay({ visible, query, onClose, onSelectResult, onSearc
   const [liveSuggestions, setLiveSuggestions] = useState<string[]>([]);
   const hasNavigatedRef = useRef(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    getFirestoreUser(currentUserId).then((user) => {
+      if (user) setCurrentUserLocation({ country: user.country, state: user.state });
+    });
+  }, [currentUserId]);
 
   // Load recent searches from storage
   useEffect(() => {
@@ -199,11 +213,37 @@ export function SearchOverlay({ visible, query, onClose, onSelectResult, onSearc
     onClose();
   };
 
+  const filteredResults = useMemo(() => {
+    if (locationFilter === 'all' || !currentUserLocation.country?.trim()) return results;
+    const country = currentUserLocation.country.trim().toLowerCase();
+    const state = (currentUserLocation.state || '').trim().toLowerCase();
+    const users = results.users.filter((u) => {
+      const uc = (u.country || '').trim().toLowerCase();
+      if (uc !== country) return false;
+      if (locationFilter === 'same_country') return true;
+      return (u.state || '').trim().toLowerCase() === state;
+    });
+    const spaces = results.spaces.filter((s) => {
+      const sc = (s.country || '').trim().toLowerCase();
+      if (!sc) return true;
+      if (sc !== country) return false;
+      if (locationFilter === 'same_country') return true;
+      return (s.state || '').trim().toLowerCase() === state;
+    });
+    return { ...results, users, spaces };
+  }, [results, locationFilter, currentUserLocation]);
+
   const hasResults = useMemo(() => 
-    results.users.length > 0 || results.posts.length > 0 || results.spaces.length > 0,
-    [results]
+    filteredResults.users.length > 0 || filteredResults.posts.length > 0 || filteredResults.spaces.length > 0,
+    [filteredResults]
   );
   const showSuggestions = !query.trim() || (query.trim().length < 1);
+
+  const locationFilterChips: { key: SearchLocationFilter; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'near_me', label: 'Near me' },
+    { key: 'same_country', label: 'Same country' },
+  ];
 
   const submitSearch = () => {
     if (!query.trim()) return;
@@ -304,6 +344,46 @@ export function SearchOverlay({ visible, query, onClose, onSelectResult, onSearc
                   </TouchableOpacity>
                 )}
               </View>
+
+              {debouncedQuery.trim().length >= 1 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.locationFilterRow}
+                  style={styles.locationFilterScroll}
+                >
+                  {locationFilterChips.map((chip) => {
+                    const isActive = locationFilter === chip.key;
+                    return (
+                      <TouchableOpacity
+                        key={chip.key}
+                        style={[
+                          styles.locationChip,
+                          {
+                            backgroundColor: isActive ? colors.primary + '22' : (colorScheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'),
+                            borderColor: isActive ? colors.primary : colors.divider,
+                          },
+                        ]}
+                        onPress={() => {
+                          haptics.light();
+                          setLocationFilter(chip.key);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name={chip.key === 'all' ? 'globe-outline' : chip.key === 'near_me' ? 'location-outline' : 'flag-outline'}
+                          size={14}
+                          color={isActive ? colors.primary : colors.secondary}
+                          style={{ marginRight: 4 }}
+                        />
+                        <Text style={[styles.locationChipText, { color: isActive ? colors.primary : colors.text }]}>
+                          {chip.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
 
               {/* Live Suggestions (1 char) */}
               {liveSuggestions.length > 0 && (
@@ -489,12 +569,12 @@ export function SearchOverlay({ visible, query, onClose, onSelectResult, onSearc
             ) : (
               <FlatList
             data={[
-              ...(results.users.length > 0 ? [{ type: 'section' as const, title: 'Users', data: null }] : []),
-              ...results.users.map(u => ({ type: 'user' as const, data: u })),
-              ...(results.posts.length > 0 ? [{ type: 'section' as const, title: 'Posts', data: null }] : []),
-              ...results.posts.map(p => ({ type: 'post' as const, data: p })),
-              ...(results.spaces.length > 0 ? [{ type: 'section' as const, title: 'Spaces', data: null }] : []),
-              ...results.spaces.map(s => ({ type: 'space' as const, data: s })),
+              ...(filteredResults.users.length > 0 ? [{ type: 'section' as const, title: 'Users', data: null }] : []),
+              ...filteredResults.users.map(u => ({ type: 'user' as const, data: u })),
+              ...(filteredResults.posts.length > 0 ? [{ type: 'section' as const, title: 'Posts', data: null }] : []),
+              ...filteredResults.posts.map(p => ({ type: 'post' as const, data: p })),
+              ...(filteredResults.spaces.length > 0 ? [{ type: 'section' as const, title: 'Spaces', data: null }] : []),
+              ...filteredResults.spaces.map(s => ({ type: 'space' as const, data: s })),
             ]}
             keyExtractor={(item, index) => {
               if (item.type === 'section') {
@@ -684,6 +764,28 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  locationFilterScroll: {
+    marginTop: Spacing.sm,
+    marginHorizontal: -Spacing.lg,
+  },
+  locationFilterRow: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xs,
+    gap: Spacing.sm,
+  },
+  locationChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginRight: Spacing.sm,
+  },
+  locationChipText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   searchSheetTitle: {
     fontSize: Typography.xs,

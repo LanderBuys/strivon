@@ -242,3 +242,19 @@ export const banUser = functions.https.onCall(async (data, context) => {
   await db.collection(USERS).doc(uid).set({ banned: true }, { merge: true });
   return { ok: true };
 });
+
+const WAITLIST = "waitlist";
+const CONFIG_WAITLIST_COUNT = "config/waitlistCount";
+
+/** When waitlist changes, update the public count doc so the static site can read it. */
+async function updateWaitlistCount(): Promise<void> {
+  const snapshot = await db.collection(WAITLIST).get();
+  const count = snapshot.size;
+  await db.doc(CONFIG_WAITLIST_COUNT).set(
+    { count, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+    { merge: true }
+  );
+}
+
+export const onWaitlistCreate = functions.firestore.document(`${WAITLIST}/{id}`).onCreate(() => updateWaitlistCount());
+export const onWaitlistDelete = functions.firestore.document(`${WAITLIST}/{id}`).onDelete(() => updateWaitlistCount());

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { PageWithBackground } from "@/components/PageWithBackground";
+import { SiteHeader } from "@/components/SiteHeader";
 import { ScrollReveal } from "@/components/ScrollReveal";
 
 export const metadata: Metadata = {
@@ -50,21 +51,7 @@ const comparisonRows: Array<{ feature: string; free: ReactNode; pro: ReactNode; 
 export default function Pricing() {
   return (
     <PageWithBackground>
-      <header className="sticky top-0 z-10 border-b border-zinc-200/80 bg-white/85 backdrop-blur-md dark:border-zinc-700/80 dark:bg-zinc-950/85">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4 sm:px-8">
-            <Link
-              href="/"
-              className="smooth-nav-link flex items-center rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2 dark:focus:ring-zinc-500 hover:opacity-90"
-            >
-              <span className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-2xl">Strivon</span>
-            </Link>
-            <nav className="flex items-center gap-1 sm:gap-2">
-              <Link href="/about" className="smooth-nav-link rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">About</Link>
-              <Link href="/pricing" className="smooth-nav-link rounded-lg px-3 py-2 text-sm font-medium text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800">Pricing</Link>
-              <Link href="/waitlist" className="smooth-btn ml-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:scale-[1.02] hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200">Join the waitlist</Link>
-            </nav>
-          </div>
-        </header>
+      <SiteHeader />
 
         <main className="mx-auto max-w-6xl px-6 py-16 sm:px-8 sm:py-24">
           <ScrollReveal>
@@ -85,7 +72,7 @@ export default function Pricing() {
 
           {/* Price strip — make pricing obvious */}
           <ScrollReveal variant="scale">
-          <div className="mx-auto mt-10 grid max-w-4xl grid-cols-3 gap-4 sm:gap-6">
+          <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             <div className="smooth-card rounded-xl border border-zinc-200 bg-white/95 px-6 py-5 text-center shadow-sm hover:-translate-y-1 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900/95">
               <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Free</p>
               <p className="mt-1 text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl">$0</p>
@@ -147,9 +134,12 @@ export default function Pricing() {
           <div className="mx-auto mt-12 flex max-w-3xl flex-wrap items-center justify-center gap-4">
             <Link
               href="/waitlist"
-              className="smooth-btn inline-flex rounded-full bg-zinc-900 px-6 py-3 text-sm font-semibold text-white hover:scale-[1.02] hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              className="smooth-btn group inline-flex items-center justify-center gap-2.5 rounded-full bg-zinc-900 px-8 py-4 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:bg-zinc-800 hover:shadow-xl hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2 active:translate-y-0 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
-              Join the waitlist — we&apos;ll notify you at launch
+              Join the waitlist
+              <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
             </Link>
           </div>
           </ScrollReveal>
@@ -161,18 +151,19 @@ export default function Pricing() {
           </div>
         </main>
 
-        <footer className="border-t border-zinc-200/80 px-6 py-12 dark:border-zinc-700/80 sm:px-8">
+        <footer className="border-t border-[var(--card-border)]/80 px-6 py-12 sm:px-8">
           <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 sm:flex-row sm:justify-between">
-            <span className="font-semibold text-zinc-900 dark:text-zinc-50">Strivon</span>
-            <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-zinc-500 dark:text-zinc-400">
-              <Link href="/about" className="smooth-nav-link hover:text-zinc-900 dark:hover:text-zinc-100">About</Link>
-              <Link href="/pricing" className="smooth-nav-link hover:text-zinc-900 dark:hover:text-zinc-100">Pricing</Link>
-              <Link href="/waitlist" className="smooth-nav-link hover:text-zinc-900 dark:hover:text-zinc-100">Join the waitlist</Link>
-              <Link href="/privacy" className="smooth-nav-link hover:text-zinc-900 dark:hover:text-zinc-100">Privacy</Link>
-              <Link href="/terms" className="smooth-nav-link hover:text-zinc-900 dark:hover:text-zinc-100">Terms</Link>
+            <Link href="/" className="font-semibold text-[var(--foreground)]">Strivon</Link>
+            <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-[var(--muted)]">
+              <Link href="/about" className="smooth-nav-link hover:text-[var(--accent)]">About</Link>
+              <Link href="/pricing" className="smooth-nav-link hover:text-[var(--accent)]">Pricing</Link>
+              <Link href="/waitlist" className="smooth-nav-link hover:text-[var(--accent)]">Waitlist</Link>
+              <Link href="/privacy" className="smooth-nav-link hover:text-[var(--accent)]">Privacy</Link>
+              <Link href="/terms" className="smooth-nav-link hover:text-[var(--accent)]">Terms</Link>
+              <Link href="/contact" className="smooth-nav-link hover:text-[var(--accent)]">Contact</Link>
             </nav>
           </div>
-          <p className="mx-auto mt-6 max-w-6xl text-center text-xs text-zinc-400 dark:text-zinc-500">© {new Date().getFullYear()} Strivon. All rights reserved.</p>
+          <p className="mx-auto mt-6 max-w-6xl text-center text-xs text-[var(--muted)]">© {new Date().getFullYear()} Strivon. All rights reserved.</p>
         </footer>
     </PageWithBackground>
   );

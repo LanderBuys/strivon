@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, Dimensions, Animated, ImageBackground } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList, Dimensions, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
@@ -13,8 +13,6 @@ import { analyticsService } from '@/lib/services/analyticsService';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const ONBOARDING_KEY = '@strivon_onboarding_completed';
-const BG_IMAGE = require('@/assets/strivonbackgroundimage.png');
-
 interface OnboardingSlide {
   id: string;
   title: string;
@@ -141,7 +139,7 @@ export default function OnboardingScreen() {
   );
 
   return (
-    <ImageBackground source={BG_IMAGE} style={styles.bgImage} resizeMode="cover">
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.header}>
           {currentIndex < slides.length - 1 && (
@@ -219,16 +217,12 @@ export default function OnboardingScreen() {
         </View>
       </View>
       </SafeAreaView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bgImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
+  screen: { flex: 1 },
   container: {
     flex: 1,
   },

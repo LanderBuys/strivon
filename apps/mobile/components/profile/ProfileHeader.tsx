@@ -11,6 +11,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { getProfilePageCustomization } from '@/lib/services/badgePerksService';
 import { getCountryFlag } from '@/lib/utils/countryFlag';
+import { formatLocationDisplay } from '@/lib/utils/locationDisplay';
 import { FollowButton } from './FollowButton';
 import { getSubscriptionTier } from '@/lib/services/subscriptionService';
 
@@ -19,7 +20,6 @@ const screenWidth = Dimensions.get('window').width;
 export const BANNER_HEIGHT = 140;
 const AVATAR_SIZE = 100;
 const AVATAR_OFFSET = 50; // How much avatar overlaps the banner
-const USER_INFO_TOP_PADDING = 0;
 
 // Helper to check if URI is a video
 const isVideoUri = (uri: string | null | undefined): boolean => {
@@ -81,7 +81,7 @@ const VideoAvatar = ({ uri }: { uri: string }) => {
 };
 
 interface ProfileHeaderProps {
-  user: User & { bio?: string; banner?: string | null; occupation?: string; country?: string; joinDate?: string; contentWarning?: string | null };
+  user: User & { bio?: string; banner?: string | null; occupation?: string; country?: string; state?: string; city?: string; openToLocalMeetups?: boolean; joinDate?: string };
   activeStatus?: boolean;
   activeStreak?: number;
   showFollowButton?: boolean;
@@ -140,8 +140,7 @@ export function ProfileHeader({ user, activeStatus = false, activeStreak = 0, sh
     backgroundImage?: string;
   }>({});
   const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro' | 'premium'>('free');
-  const [contentWarningDismissed, setContentWarningDismissed] = useState(false);
-  
+
   // Load subscription tier
   useEffect(() => {
     const loadTier = async () => {
@@ -317,38 +316,6 @@ export function ProfileHeader({ user, activeStatus = false, activeStreak = 0, sh
           </View>
         )}
 
-        {/* Content Warning */}
-        {user?.contentWarning && !contentWarningDismissed && (
-          <View style={[styles.contentWarningContainer, { 
-            backgroundColor: colors.error + '12',
-            borderColor: colors.error + '30',
-          }]}>
-            <View style={styles.contentWarningHeader}>
-              <View style={[styles.contentWarningIconContainer, { backgroundColor: colors.error + '20' }]}>
-                <Ionicons name="warning" size={20} color={colors.error} />
-              </View>
-              <View style={styles.contentWarningHeaderText}>
-                <Text style={[styles.contentWarningTitle, { color: colors.error }]}>
-                  Content Warning
-                </Text>
-                <Text style={[styles.contentWarningText, { color: pageTextColor }]}>
-                  {user.contentWarning}
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={[styles.contentWarningButton, { backgroundColor: colors.error }]}
-              onPress={() => {
-                haptics.light();
-                setContentWarningDismissed(true);
-              }}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.contentWarningButtonText}>Show Profile</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         {/* Premium: Custom Creator Label */}
         {subscriptionTier === 'premium' && user?.label && (
           <View style={[styles.creatorLabelContainer, { backgroundColor: pageAccentColor + '15' }]}>
@@ -369,15 +336,15 @@ export function ProfileHeader({ user, activeStatus = false, activeStreak = 0, sh
               </Text>
             </View>
           )}
-          {user?.country && (
+          {formatLocationDisplay(user) && (
             <View style={styles.joinDateContainer}>
-              {getCountryFlag(user.country) ? (
+              {user?.country && getCountryFlag(user.country) ? (
                 <Text style={styles.countryFlag}>{getCountryFlag(user.country)}</Text>
               ) : (
                 <Ionicons name="location-outline" size={16} color={pageTextColor} style={{ opacity: 0.7 }} />
               )}
               <Text style={[styles.joinDate, { color: pageTextColor, opacity: 0.7 }]}>
-                {user.country}
+                {formatLocationDisplay(user)}
               </Text>
             </View>
           )}
@@ -470,7 +437,7 @@ const styles = StyleSheet.create({
   avatarContainer: {
     position: 'absolute',
     top: BANNER_HEIGHT - AVATAR_OFFSET,
-    left: Spacing.md,
+    left: Spacing.lg,
     width: AVATAR_SIZE + 8,
     height: AVATAR_SIZE + 8,
     zIndex: 40,
@@ -526,14 +493,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   userInfo: {
-    paddingTop: AVATAR_OFFSET + USER_INFO_TOP_PADDING + 2,
-    paddingHorizontal: Spacing.md,
-    paddingBottom: 0,
+    paddingTop: 60,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 0,
+    marginBottom: Spacing.xs,
     gap: Spacing.xs,
     flexWrap: 'wrap',
   },
@@ -549,8 +516,8 @@ const styles = StyleSheet.create({
   handleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
-    marginBottom: Spacing.xs,
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.sm,
     flexWrap: 'wrap',
   },
   handle: {
@@ -571,7 +538,7 @@ const styles = StyleSheet.create({
     opacity: 0.95,
   },
   bioContainer: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
     marginBottom: Spacing.sm,
     paddingRight: Spacing.xs,
   },
@@ -584,8 +551,8 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 0,
-    marginBottom: 0,
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.sm,
     gap: Spacing.md,
     flexWrap: 'wrap',
   },
@@ -601,6 +568,18 @@ const styles = StyleSheet.create({
   countryFlag: {
     fontSize: 16,
     lineHeight: 18,
+  },
+  meetupsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.sm + 4,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+  },
+  meetupsBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   streakContainer: {
     flexDirection: 'row',
@@ -628,8 +607,8 @@ const styles = StyleSheet.create({
   actionButtonsRow: {
     flexDirection: 'row',
     gap: Spacing.md,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.sm,
+    marginTop: Spacing.md,
+    marginBottom: 0,
     alignItems: 'center',
   },
   followButtonContainer: {
@@ -652,61 +631,11 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  contentWarningContainer: {
-    marginTop: Spacing.md,
-    marginBottom: Spacing.md,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: Spacing.sm,
-  },
-  contentWarningHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-  },
-  contentWarningIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  contentWarningHeaderText: {
-    flex: 1,
-    gap: Spacing.xs,
-  },
-  contentWarningTitle: {
-    fontSize: Typography.base,
-    fontWeight: '700',
-    marginBottom: 2,
-    letterSpacing: -0.1,
-  },
-  contentWarningText: {
-    fontSize: Typography.sm,
-    lineHeight: Typography.sm * 1.5,
-  },
-  contentWarningButton: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 44,
-    marginTop: Spacing.xs,
-  },
-  contentWarningButtonText: {
-    color: '#FFFFFF',
-    fontSize: Typography.base,
-    fontWeight: '600',
-    letterSpacing: -0.1,
-  },
   creatorLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: BorderRadius.md,

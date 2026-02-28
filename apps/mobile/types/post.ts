@@ -6,6 +6,12 @@ export interface User {
   label?: string;
   bio?: string;
   country?: string;
+  /** State/region (e.g. Texas, California). Shown as "City, Country" or "State, Country" — never exact address. */
+  state?: string;
+  /** City (e.g. Berlin, Toronto). Optional. */
+  city?: string;
+  /** When true, show "Open to IRL meetups" badge and include in local discovery. */
+  openToLocalMeetups?: boolean;
   /** Profile banner image or video URL */
   banner?: string | null;
   /** Job title / role (e.g. "Founder & CEO") */
@@ -52,6 +58,8 @@ export interface Post {
   poll?: any;
   media?: PostMedia[];
   contentWarning?: string | null; // Content warning text
+  /** Post type: Build Log, Question, Win, Loss, Collaboration, or default Content */
+  postType?: PostType;
   // Moderation pipeline: post stays private until media approved
   ownerUid?: string;
   mediaId?: string;
@@ -117,6 +125,10 @@ export interface Space {
   requiresApproval?: boolean;
   pendingRequestsCount?: number;
   hasPendingRequest?: boolean; // User has a pending request
+  /** Location-based space: country (e.g. "Germany"), state/region, city. For "Berlin Builders", "Texas Founders". */
+  country?: string;
+  state?: string;
+  city?: string;
 }
 
 export interface SpaceEvent {
@@ -216,10 +228,15 @@ export enum PostType {
   BUILD_LOG = 'BUILD_LOG',
   COLLAB = 'COLLAB',
   WIN_LOSS = 'WIN_LOSS',
-  // Aliases used by some UI components
   WIN = 'WIN',
   LOSS = 'LOSS',
   COLLABORATION = 'COLLABORATION',
+  MILESTONE = 'MILESTONE',
+  TIP = 'TIP',
+  RESOURCE = 'RESOURCE',
+  LAUNCH = 'LAUNCH',
+  SHIP = 'SHIP',
+  TAKEAWAY = 'TAKEAWAY',
 }
 
 /** Text overlay on a story (position as percentage 0–100 for scaling) */

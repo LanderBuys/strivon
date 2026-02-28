@@ -664,6 +664,11 @@ export default function CreatePostScreen() {
           
           <View style={styles.headerCenter}>
             <Text style={[styles.headerTitle, { color: colors.text }]}>Create Post</Text>
+            <Text style={[styles.postingDestination, { color: colors.secondary }]} numberOfLines={1}>
+              {selectedSpaces.length > 0
+                ? 'Posting to your network (Feed) + selected Spaces.'
+                : 'Posting to your network (Feed).'}
+            </Text>
           </View>
           
           <View style={styles.headerActions}>
@@ -741,6 +746,53 @@ export default function CreatePostScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+        {/* Post Type Selector */}
+        <View style={styles.postTypeSection}>
+          <Text style={[styles.postTypeLabel, { color: colors.secondary }]}>Post type</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.postTypeChips}
+          >
+            {[
+              { type: PostType.CONTENT, label: 'Post' },
+              { type: PostType.BUILD_LOG, label: 'Build Log' },
+              { type: PostType.MILESTONE, label: 'Milestone' },
+              { type: PostType.WIN, label: 'Win' },
+              { type: PostType.TAKEAWAY, label: 'Takeaway' },
+              { type: PostType.SHIP, label: 'Ship' },
+              { type: PostType.QUESTION, label: 'Question' },
+              { type: PostType.TIP, label: 'Tip' },
+              { type: PostType.RESOURCE, label: 'Resource' },
+            ].map(({ type, label }) => (
+              <TouchableOpacity
+                key={type}
+                onPress={() => {
+                  haptics.light();
+                  setSelectedPostType(type);
+                }}
+                activeOpacity={0.7}
+                style={[
+                  styles.postTypeChip,
+                  {
+                    backgroundColor: selectedPostType === type ? colors.primary : colors.cardBackground,
+                    borderColor: selectedPostType === type ? colors.primary : colors.cardBorder,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.postTypeChipText,
+                    { color: selectedPostType === type ? '#FFFFFF' : colors.text },
+                  ]}
+                >
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         {/* Editable Post Card */}
         <EditablePostCard
           key={`post-card-${formKey}`}
@@ -1223,12 +1275,43 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: -0.3,
   },
+  postingDestination: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
+    opacity: 0.9,
+  },
   content: {
     flex: 1,
   },
   contentContainer: {
     padding: Spacing.md,
     paddingBottom: Spacing.xl * 2,
+  },
+  postTypeSection: {
+    marginBottom: Spacing.md,
+  },
+  postTypeLabel: {
+    fontSize: Typography.xs,
+    fontWeight: '600',
+    marginBottom: Spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  postTypeChips: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  postTypeChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  postTypeChipText: {
+    fontSize: Typography.sm,
+    fontWeight: '600',
   },
   mediaManagerContainer: {
     marginBottom: Spacing.md,

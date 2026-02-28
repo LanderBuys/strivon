@@ -13,7 +13,7 @@ export interface UserMetrics {
   isBetaTester: boolean;
   isDayOne: boolean;
   isEarly: boolean;
-  subscriptionTier?: 'pro' | 'premium' | 'supporter' | 'contributor' | 'member-plus' | 'vip' | 'elite' | 'investor' | 'whale';
+  subscriptionTier?: 'pro' | 'premium' | 'pro-plus' | 'supporter' | 'contributor' | 'member-plus' | 'vip' | 'elite' | 'investor' | 'whale';
   limitedTier?: 'level-ii' | 'level-iii';
   activeDays: number;
   consecutiveActiveDays: number;

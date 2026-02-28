@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Post } from '@/types/post';
+import { Post, PostType } from '@/types/post';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
@@ -694,6 +694,28 @@ export const PostCard = React.memo(function PostCard({
               </TouchableOpacity>
             )}
           </View>
+
+        {/* Post Type Badge */}
+        {post.postType && post.postType !== PostType.CONTENT && (() => {
+          const typeLabel = post.postType === PostType.BUILD_LOG ? 'Build Log'
+            : post.postType === PostType.QUESTION ? 'Question'
+            : post.postType === PostType.WIN ? 'Win'
+            : post.postType === PostType.LOSS ? 'Lesson'
+            : post.postType === PostType.COLLABORATION ? 'Collaboration'
+            : post.postType === PostType.MILESTONE ? 'Milestone'
+            : post.postType === PostType.TIP ? 'Tip'
+            : post.postType === PostType.RESOURCE ? 'Resource'
+            : post.postType === PostType.LAUNCH ? 'Launch'
+            : post.postType === PostType.SHIP ? 'Ship'
+            : post.postType === PostType.TAKEAWAY ? 'Takeaway'
+            : null;
+          if (!typeLabel) return null;
+          return (
+            <View style={[styles.postTypeBadge, { backgroundColor: colors.primary + '18' }]}>
+              <Text style={[styles.postTypeBadgeText, { color: colors.primary }]}>{typeLabel}</Text>
+            </View>
+          );
+        })()}
 
         {/* Content Warning */}
         {post.contentWarning && !contentWarningDismissed && (
@@ -1392,6 +1414,18 @@ const styles = StyleSheet.create({
   imageModalImage: {
     width: SCREEN_WIDTH,
     height: '100%',
+  },
+  postTypeBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.xs,
+  },
+  postTypeBadgeText: {
+    fontSize: Typography.xs,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   contentWarningContainer: {
     marginBottom: Spacing.md,

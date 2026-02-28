@@ -26,7 +26,7 @@ type ListItem =
   | { type: 'reply'; message: ThreadMessage; parent: ThreadMessage };
 
 export default function ThreadScreen() {
-  const params = useLocalSearchParams<{ id: string | string[] }>();
+  const params = useLocalSearchParams<{ id: string | string[]; spaceName?: string; spaceId?: string }>();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -42,6 +42,9 @@ export default function ThreadScreen() {
   const { getReportBlockOptions } = useReportBlock();
 
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const spaceName = typeof params.spaceName === 'string' ? params.spaceName : undefined;
+  const spaceId = typeof params.spaceId === 'string' ? params.spaceId : undefined;
+  const originLabel = spaceName ? `From Space: ${spaceName}` : 'From Feed';
 
   useEffect(() => {
     if (id) {
@@ -250,7 +253,12 @@ export default function ThreadScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
             <Ionicons name="chevron-back" size={28} color={colors.text} />
           </TouchableOpacity>
-          <ThemedText style={[styles.headerTitleText, { color: colors.text }]}>Thread</ThemedText>
+          <View style={styles.headerTitle}>
+            <ThemedText style={[styles.headerTitleText, { color: colors.text }]}>Thread</ThemedText>
+            <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
+              <ThemedText style={[styles.originLabel, { color: colors.primary }]}>{originLabel}</ThemedText>
+            </TouchableOpacity>
+          </View>
           <View style={styles.headerSpacer} />
         </View>
         <View style={[styles.center, { padding: Spacing.lg }]}>
@@ -322,6 +330,9 @@ export default function ThreadScreen() {
           </TouchableOpacity>
           <View style={styles.headerTitle}>
             <ThemedText style={[styles.headerTitleText, { color: colors.text }]}>Thread</ThemedText>
+            <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7} accessibilityLabel={`${originLabel}, tap to go back`}>
+              <ThemedText style={[styles.originLabel, { color: colors.primary }]}>{originLabel}</ThemedText>
+            </TouchableOpacity>
             {messages.length > 0 && (
               <ThemedText style={[styles.headerSubtitle, { color: colors.secondary }]}>
                 {groups.length} {groups.length === 1 ? 'comment' : 'comments'}
@@ -480,6 +491,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginTop: 1,
     opacity: 0.8,
+  },
+  originLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
   },
   messagesList: {
     flex: 1,

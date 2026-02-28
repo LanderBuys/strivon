@@ -132,6 +132,26 @@ export async function getFeedPostsFirestore(
   return { data: posts, hasMore: docs.length > start + pageSize };
 }
 
+export async function getPostByIdFirestore(id: string): Promise<Post | null> {
+  const db = getFirestoreDb();
+  if (!db) return null;
+  const snap = await getDoc(doc(db, POSTS, id));
+  if (!snap.exists()) return null;
+  const d = { id: snap.id, ...snap.data() } as Record<string, unknown>;
+  const uid = getCurrentUserId();
+  let isLiked = false;
+  let isSaved = false;
+  if (uid) {
+    const [likeSnap, saveSnap] = await Promise.all([
+      getDoc(doc(db, POST_LIKES, `${id}_${uid}`)),
+      getDoc(doc(db, POST_SAVES, `${id}_${uid}`)),
+    ]);
+    isLiked = likeSnap.exists();
+    isSaved = saveSnap.exists();
+  }
+  return toPost(snap.id, d, isLiked, isSaved);
+}
+
 export async function likePostFirestore(postId: string, userId: string): Promise<number> {
   const db = getFirestoreDb();
   if (!db) return 0;

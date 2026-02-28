@@ -63,8 +63,8 @@ export default function SpacesPage() {
   }, [load]);
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <h2 className="mb-6 text-xl font-semibold text-[var(--foreground)]">Spaces</h2>
+    <div className="mx-auto w-full max-w-3xl px-0 sm:px-2">
+      <h2 className="mb-4 text-lg font-semibold text-[var(--foreground)] sm:mb-6 sm:text-xl">Spaces</h2>
       {error && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
           {error}
@@ -77,7 +77,7 @@ export default function SpacesPage() {
           ))}
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-1">
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
           {spaces.map((space) => (
             <SpaceCard key={space.id} space={space} />
           ))}

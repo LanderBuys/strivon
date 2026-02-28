@@ -13,10 +13,10 @@ import { ProfileEditModal } from '@/components/profile/ProfileEditModal';
 import { ProfileCustomizationModal } from '@/components/profile/ProfileCustomizationModal';
 import { PostCard } from '@/components/feed/PostCard';
 import { ProfilePostGrid } from '@/components/profile/ProfilePostGrid';
-import { EmptyState } from '@/components/EmptyState';
+import { ProfileEmptyState } from '@/components/profile/ProfileEmptyState';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LoadingOverlay } from '@/components/ui/LoadingOverlay';
-import { getUserById, updateUserProfile, getFollowers, getFollowing } from '@/lib/api/users';
+import { getUserById, updateUserProfile, getFollowers, getFollowing, getFollowerCount, getFollowingCount } from '@/lib/api/users';
 import { getFeedPosts, votePoll } from '@/lib/api/posts';
 import { Colors, Spacing, BorderRadius, Typography, hexToRgba } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -166,16 +166,17 @@ export default function ProfileScreen() {
   const loadFollowerCounts = async () => {
     if (!user) return;
     try {
-      const followersList = await getFollowers(user.id);
-      const followingList = await getFollowing(user.id);
-      setFollowers(followersList.length);
-      setFollowing(followingList.length);
+      const [followerCount, followingCount] = await Promise.all([
+        getFollowerCount(user.id),
+        getFollowingCount(user.id),
+      ]);
+      setFollowers(followerCount);
+      setFollowing(followingCount);
 
       const { updateUserMetrics } = await import('@/lib/services/userMetricsService');
-      await updateUserMetrics({ followers: followersList.length });
+      await updateUserMetrics({ followers: followerCount });
     } catch (error) {
       console.error('Error loading follower counts:', error);
-      // Keep previous counts on error; do not overwrite with fallbacks
     }
   };
 
@@ -186,25 +187,22 @@ export default function ProfileScreen() {
   const loadProfile = async () => {
     try {
       setError(null);
-      // In real app, get current user
       const fetchedUser = await getUserById(getCurrentUserIdOrFallback());
       if (fetchedUser) {
         setUser(fetchedUser);
-        
-        // Initialize metrics if not already done
-        const { initializeUserMetrics } = await import('@/lib/services/userMetricsService');
-        await initializeUserMetrics();
-        
-        // Record today's activity to ensure user gets at least the Active badge
-        const { recordActivity } = await import('@/lib/services/activityService');
-        await recordActivity('post'); // Record a generic activity for today
+        setLoading(false);
+        // Run non-blocking in background so profile shows immediately
+        Promise.all([
+          import('@/lib/services/userMetricsService').then(({ initializeUserMetrics }) => initializeUserMetrics()),
+          import('@/lib/services/activityService').then(({ recordActivity }) => recordActivity('post')),
+        ]).catch(() => {});
       } else {
         setError('Failed to load user profile');
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error loading profile:', error);
       setError('Failed to load user profile');
-    } finally {
       setLoading(false);
     }
   };
@@ -604,7 +602,14 @@ export default function ProfileScreen() {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <EmptyState {...getEmptyState()} />
+                <ProfileEmptyState
+                  {...getEmptyState()}
+                  textColor={pageTextColor}
+                  secondaryColor={colors.textMuted ?? colors.secondary}
+                  accentColor={pageAccentColor}
+                  backgroundColor={pageBackgroundColor}
+                  cardBackgroundColor={colors.cardBackground}
+                />
               )
             }
           />
@@ -646,7 +651,14 @@ export default function ProfileScreen() {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <EmptyState {...getEmptyState()} />
+                <ProfileEmptyState
+                  {...getEmptyState()}
+                  textColor={pageTextColor}
+                  secondaryColor={colors.textMuted ?? colors.secondary}
+                  accentColor={pageAccentColor}
+                  backgroundColor={pageBackgroundColor}
+                  cardBackgroundColor={colors.cardBackground}
+                />
               )
             }
           />
@@ -697,32 +709,6 @@ export default function ProfileScreen() {
               accessibilityRole="button">
               <IconSymbol name="create-outline" size={20} color={pageAccentColor} />
               <Text style={[styles.menuItemText, { color: colors.text }]}>Edit Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                haptics.selection();
-                setShowMenu(false);
-                setActiveTab('posts');
-              }}
-              activeOpacity={0.7}
-              accessibilityLabel="Your posts"
-              accessibilityRole="button">
-              <Ionicons name="grid-outline" size={20} color={pageAccentColor} />
-              <Text style={[styles.menuItemText, { color: colors.text }]}>Your posts</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                haptics.selection();
-                setShowMenu(false);
-                setActiveTab('saved');
-              }}
-              activeOpacity={0.7}
-              accessibilityLabel="Saved posts"
-              accessibilityRole="button">
-              <Ionicons name="bookmark-outline" size={20} color={pageAccentColor} />
-              <Text style={[styles.menuItemText, { color: colors.text }]}>Saved posts</Text>
             </TouchableOpacity>
             {canCustomize && (
               <TouchableOpacity

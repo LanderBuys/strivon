@@ -69,8 +69,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="spaces"
         options={{
-          title: 'Community',
-          tabBarAccessibilityLabel: 'Community',
+          title: 'Spaces',
+          tabBarAccessibilityLabel: 'Spaces',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
               name={focused ? 'grid' : 'grid-outline'} 

@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/link-picocolors.js && node ../../node_modules/next/dist/bin/next dev --webpack",
-    "build": "node ../../node_modules/next/dist/bin/next build",
+    "dev:clean": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true});console.log('Cleared .next')}catch(e){}\" && npm run dev",
+    "build": "node scripts/inline-auth-bg.js && node ../../node_modules/next/dist/bin/next build",
     "start": "node ../../node_modules/next/dist/bin/next start",
     "lint": "eslint",
-    "postinstall": "node scripts/link-picocolors.js"
+    "postinstall": "node scripts/link-picocolors.js && node scripts/inline-auth-bg.js"
   },
   "dependencies": {
     "firebase": "^12.9.0",

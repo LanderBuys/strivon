@@ -13,6 +13,9 @@ export interface ApiUser {
   banner?: string | null;
   occupation?: string;
   country?: string;
+  state?: string;
+  city?: string;
+  openToLocalMeetups?: boolean;
   joinDate?: string;
 }
 
@@ -24,4 +27,7 @@ export interface ApiUserProfileUpdate {
   banner?: string | null;
   occupation?: string;
   country?: string;
+  state?: string;
+  city?: string;
+  openToLocalMeetups?: boolean;
 }

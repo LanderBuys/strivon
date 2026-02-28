@@ -28,9 +28,9 @@ export default function CreatePage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <h2 className="mb-6 text-xl font-semibold text-[var(--foreground)]">Create post</h2>
-      <form onSubmit={handleSubmit} className="app-card overflow-hidden p-6 md:p-8">
+    <div className="mx-auto w-full max-w-2xl">
+      <h2 className="mb-4 text-lg font-semibold text-[var(--foreground)] sm:mb-6 sm:text-xl">Create post</h2>
+      <form onSubmit={handleSubmit} className="app-card overflow-hidden p-4 sm:p-6 md:p-8">
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
             {error}
@@ -46,12 +46,12 @@ export default function CreatePage() {
         />
         <div className="mt-5 flex items-center justify-between gap-4">
           <div className="flex gap-1 text-[var(--muted)]">
-            <button type="button" className="smooth-btn rounded-xl p-2.5 hover:bg-[var(--accent-subtle)] hover:text-[var(--foreground)]" title="Add image">
+            <button type="button" className="smooth-btn rounded-xl p-2.5 hover:bg-[var(--accent-subtle)] hover:text-[var(--foreground)]" title="Add image (coming soon)">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </button>
-            <button type="button" className="smooth-btn rounded-xl p-2.5 hover:bg-[var(--accent-subtle)] hover:text-[var(--foreground)]" title="Add space">
+            <button type="button" className="smooth-btn rounded-xl p-2.5 hover:bg-[var(--accent-subtle)] hover:text-[var(--foreground)]" title="Share to spaces (coming soon)">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>

@@ -74,29 +74,29 @@ export default function ProfileEditPage() {
 
   if (!user) {
     return (
-      <div className="mx-auto max-w-2xl">
-        <p className="text-zinc-600 dark:text-zinc-400">Please sign in.</p>
-        <Link href="/app/sign-in" className="mt-4 inline-block text-blue-600 hover:underline">Sign in</Link>
+      <div className="mx-auto w-full max-w-2xl">
+        <p className="text-[var(--muted)]">Please sign in.</p>
+        <Link href="/app/sign-in" className="mt-4 inline-block font-medium text-[var(--accent)] hover:underline">Sign in</Link>
       </div>
     );
   }
 
   if (initializing) {
     return (
-      <div className="mx-auto max-w-2xl">
-        <div className="h-64 animate-pulse rounded-2xl bg-zinc-200 dark:bg-zinc-800" />
+      <div className="mx-auto w-full max-w-2xl">
+        <div className="h-64 animate-pulse rounded-2xl bg-[var(--card)] ring-1 ring-[var(--card-border)]" />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <Link href="/app/profile" className="mb-6 inline-flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+    <div className="mx-auto w-full max-w-2xl">
+      <Link href="/app/profile" className="mb-4 inline-flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)] sm:mb-6">
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         Back to profile
       </Link>
-      <h2 className="mb-6 text-xl font-semibold text-zinc-900 dark:text-zinc-100">Edit profile</h2>
-      <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+      <h2 className="mb-4 text-lg font-semibold text-[var(--foreground)] sm:mb-6 sm:text-xl">Edit profile</h2>
+      <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-4 sm:p-6">
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">{error}</div>
         )}

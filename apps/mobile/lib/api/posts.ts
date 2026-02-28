@@ -101,6 +101,7 @@ export async function createPost(data: any, onMediaProgress?: (progress: number)
     poll: data.poll,
     contentWarning: data.contentWarning || null,
     hashtags: Array.isArray(data.tags) ? data.tags : undefined,
+    type: data.type,
   });
 }
 

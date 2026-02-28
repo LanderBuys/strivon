@@ -9,9 +9,9 @@ import { ProfileStats } from '@/components/profile/ProfileStats';
 import { type ProfileViewMode } from '@/components/profile/ProfileTabs';
 import { PostCard } from '@/components/feed/PostCard';
 import { ProfilePostGrid } from '@/components/profile/ProfilePostGrid';
-import { EmptyState } from '@/components/EmptyState';
+import { ProfileEmptyState } from '@/components/profile/ProfileEmptyState';
 import { LoadingOverlay } from '@/components/ui/LoadingOverlay';
-import { getUserById, getFollowers, getFollowing, isFollowing } from '@/lib/api/users';
+import { getUserById, getFollowerCount, getFollowingCount, getFollowers, getFollowing, isFollowing } from '@/lib/api/users';
 import { getFeedPosts, votePoll } from '@/lib/api/posts';
 import { Colors, Spacing, Typography, BorderRadius, hexToRgba } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -21,6 +21,7 @@ import { FollowButton } from '@/components/profile/FollowButton';
 import { useCurrentUserId } from '@/hooks/useCurrentUserId';
 import { useUserBadges } from '@/hooks/useUserBadges';
 import { useReportBlock } from '@/hooks/useReportBlock';
+import { addViewedProfileId } from '@/lib/services/viewedOrInteractedProfilesService';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const screenWidth = Dimensions.get('window').width;
@@ -73,23 +74,33 @@ export default function UserProfileScreen() {
       const fetchedUser = await getUserById(id);
       if (fetchedUser) {
         setUser(fetchedUser);
-        // Load follow status
+        setLoading(false);
+        if (id && id !== currentUserId) addViewedProfileId(id).catch(() => {});
+        // Load follow status and counts in parallel (fast counts, no full user fetches)
         if (id !== currentUserId) {
-          const followingStatus = await isFollowing(currentUserId, id);
+          const [followingStatus, followerCount, followingCount] = await Promise.all([
+            isFollowing(currentUserId, id),
+            getFollowerCount(id),
+            getFollowingCount(id),
+          ]);
           setIsFollowingUser(followingStatus);
+          setFollowers(followerCount);
+          setFollowing(followingCount);
+        } else {
+          const [followerCount, followingCount] = await Promise.all([
+            getFollowerCount(id),
+            getFollowingCount(id),
+          ]);
+          setFollowers(followerCount);
+          setFollowing(followingCount);
         }
-        // Load follower/following counts
-        const followersList = await getFollowers(id);
-        const followingList = await getFollowing(id);
-        setFollowers(followersList.length || 1247);
-        setFollowing(followingList.length || 89);
       } else {
         setError('User not found');
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error loading profile:', error);
       setError('Failed to load user profile');
-    } finally {
       setLoading(false);
     }
   };
@@ -432,7 +443,14 @@ export default function UserProfileScreen() {
   const listEmpty = error ? (
     <View style={styles.center}><ThemedText style={{ color: colors.error }}>{error}</ThemedText></View>
   ) : (
-    <EmptyState {...getEmptyState()} />
+    <ProfileEmptyState
+      {...getEmptyState()}
+      textColor={colors.text}
+      secondaryColor={colors.textMuted ?? colors.secondary}
+      accentColor={colors.primary}
+      backgroundColor={colors.background}
+      cardBackgroundColor={colors.cardBackground}
+    />
   );
 
   return (

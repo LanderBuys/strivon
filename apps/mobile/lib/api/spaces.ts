@@ -193,6 +193,10 @@ export interface CreateSpaceData {
   rules?: string[];
   guidelines?: string;
   tags?: string[];
+  /** Location-based space: e.g. "Berlin Builders", "Texas Founders". */
+  country?: string;
+  state?: string;
+  city?: string;
 }
 
 export async function createSpace(data: CreateSpaceData): Promise<Space> {
@@ -204,12 +208,17 @@ export async function createSpace(data: CreateSpaceData): Promise<Space> {
     description: data.description,
     category: data.category,
     color: data.color,
+    banner: data.banner,
+    iconImage: data.iconImage,
     channels: data.channels,
     isPrivate: data.isPrivate,
     requiresApproval: data.requiresApproval,
     rules: data.rules,
     guidelines: data.guidelines,
     tags: data.tags,
+    country: data.country,
+    state: data.state,
+    city: data.city,
   });
   return { ...space, iconImage: space.iconImage || getMockSpaceIconImage({ id: space.id, name: space.name }) };
 }
@@ -232,6 +241,9 @@ export async function updateSpace(id: string, data: Partial<CreateSpaceData>): P
     rules: data.rules,
     guidelines: data.guidelines,
     tags: data.tags,
+    country: data.country,
+    state: data.state,
+    city: data.city,
   });
   if (!updated) return null;
   return { ...updated, iconImage: updated.iconImage || getMockSpaceIconImage({ id: updated.id, name: updated.name }) };

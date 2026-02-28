@@ -9,6 +9,7 @@ import {
   where,
   getDocs,
   serverTimestamp,
+  limit,
 } from 'firebase/firestore';
 import { getFirestoreDb, getCurrentUserId } from '@/lib/firebase';
 
@@ -25,6 +26,12 @@ export interface FirestoreUser {
   banner?: string | null;
   occupation?: string;
   country?: string;
+  /** State/region (e.g. Texas, Berlin). Optional but encouraged for local discovery. */
+  state?: string;
+  /** City. Optional. */
+  city?: string;
+  /** When true, user is open to local IRL meetups; shown as badge and included in "Builders Near You". */
+  openToLocalMeetups?: boolean;
   joinDate: string;
   email?: string;
   /** True after user completes the post-signup profile step (username, age, etc.) */
@@ -49,6 +56,9 @@ function toUser(docId: string, d: Record<string, unknown>): FirestoreUser {
     banner: (data.banner as string) ?? null,
     occupation: data.occupation as string | undefined,
     country: data.country as string | undefined,
+    state: data.state as string | undefined,
+    city: data.city as string | undefined,
+    openToLocalMeetups: data.openToLocalMeetups as boolean | undefined,
     joinDate: (data.joinDate as string) || new Date().toISOString(),
     email: data.email as string | undefined,
     profileCompleted: data.profileCompleted as boolean | undefined,
@@ -151,13 +161,48 @@ export async function ensureFirestoreUser(
   const existing = await getFirestoreUser(uid);
   if (existing) return;
   const handle = `@user${uid.slice(0, 8)}`;
+  const name = displayName || email?.split('@')[0] || 'Guest';
   await setFirestoreUser(uid, {
     id: uid,
-    name: displayName || email?.split('@')[0] || 'User',
+    name,
     handle,
     avatar: photoURL || null,
     joinDate: new Date().toISOString(),
     email: email || undefined,
     profileCompleted: false,
   });
+}
+
+const BUILDERS_NEARBY_LIMIT = 50;
+
+/**
+ * Get users by location. Queries by country; optionally filters by state/city in memory.
+ * Excludes banned/frozen and the current user. Prefers openToLocalMeetups when available.
+ */
+export async function getBuildersByLocation(
+  country: string,
+  state?: string | null,
+  city?: string | null,
+  excludeUserId?: string | null
+): Promise<FirestoreUser[]> {
+  const db = getFirestoreDb();
+  if (!db || !country.trim()) return [];
+  const q = query(
+    collection(db, USERS),
+    where('country', '==', country.trim()),
+    limit(BUILDERS_NEARBY_LIMIT)
+  );
+  const snap = await getDocs(q);
+  let list = snap.docs
+    .map((d) => toUser(d.id, (d.data() as Record<string, unknown>) || {}))
+    .filter((u) => u.banned !== true && u.status !== 'frozen' && u.id !== excludeUserId);
+  if (state?.trim()) {
+    const stateLower = state.trim().toLowerCase();
+    list = list.filter((u) => (u.state || '').toLowerCase() === stateLower);
+  }
+  if (city?.trim()) {
+    const cityLower = city.trim().toLowerCase();
+    list = list.filter((u) => (u.city || '').toLowerCase() === cityLower);
+  }
+  return list;
 }

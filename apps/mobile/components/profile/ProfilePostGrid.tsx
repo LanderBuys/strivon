@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Dimensions, FlatList } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Dimensions, FlatList, RefreshControl } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,9 +18,9 @@ interface ProfilePostGridProps {
   onLike?: (postId: string) => void;
   onSave?: (postId: string) => void;
   onPollVote?: (postId: string, optionId: string) => void;
-  ListHeaderComponent?: React.ReactElement | null;
-  ListEmptyComponent?: React.ReactElement | null;
-  refreshControl?: React.ReactElement;
+  ListHeaderComponent?: React.ReactElement | React.ComponentType<any> | null;
+  ListEmptyComponent?: React.ReactElement | React.ComponentType<any> | null;
+  refreshControl?: React.ReactElement<React.ComponentProps<typeof RefreshControl>> | null;
   contentContainerStyle?: object;
   /** Optional custom background for text-only cells */
   placeholderBackground?: string;
@@ -104,7 +104,7 @@ export function ProfilePostGrid({
       contentContainerStyle={[styles.content, contentContainerStyle]}
       style={styles.list}
       ListEmptyComponent={ListEmptyComponent}
-      refreshControl={refreshControl}
+      refreshControl={refreshControl ?? undefined}
       showsVerticalScrollIndicator={false}
     />
   );

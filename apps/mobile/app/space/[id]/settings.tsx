@@ -36,6 +36,9 @@ export default function SpaceSettingsScreen() {
   const [rules, setRules] = useState<string[]>(['']);
   const [guidelines, setGuidelines] = useState('');
   const [tags, setTags] = useState<string[]>(['']);
+  const [country, setCountry] = useState('');
+  const [state, setState] = useState('');
+  const [city, setCity] = useState('');
 
   const COLORS = [
     '#1D9BF0', '#61DAFB', '#FF6B6B', '#9B59B6', '#3498DB', 
@@ -80,6 +83,9 @@ export default function SpaceSettingsScreen() {
         setRules(fetchedSpace.rules && fetchedSpace.rules.length > 0 ? fetchedSpace.rules : ['']);
         setGuidelines(fetchedSpace.guidelines || '');
         setTags(fetchedSpace.tags && fetchedSpace.tags.length > 0 ? fetchedSpace.tags : ['']);
+        setCountry(fetchedSpace.country || '');
+        setState(fetchedSpace.state || '');
+        setCity(fetchedSpace.city || '');
       }
     } catch (error) {
       console.error('Error loading space:', error);
@@ -158,6 +164,9 @@ export default function SpaceSettingsScreen() {
         rules: rules.filter(r => r.trim().length > 0),
         guidelines: guidelines.trim() || undefined,
         tags: tags.filter(t => t.trim().length > 0),
+        country: country.trim() || undefined,
+        state: state.trim() || undefined,
+        city: city.trim() || undefined,
       });
 
       if (updated) {
@@ -434,6 +443,38 @@ export default function SpaceSettingsScreen() {
             <Text style={[styles.addButtonText, { color: colors.primary }]}>Add Tag</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Location (optional) — for "Spaces in your area" */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Location (optional)</Text>
+          <Text style={[styles.sectionHint, { color: colors.secondary }]}>
+            Add country/region/city so this space appears in &quot;Spaces in your area&quot; for builders nearby.
+          </Text>
+          <Text style={[styles.fieldLabel, { color: colors.text }]}>Country</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.spaceBackground, borderColor: colors.cardBorder, color: colors.text }]}
+            value={country}
+            onChangeText={setCountry}
+            placeholder="e.g. Germany, USA"
+            placeholderTextColor={colors.secondary}
+          />
+          <Text style={[styles.fieldLabel, { color: colors.text }]}>State / Region</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.spaceBackground, borderColor: colors.cardBorder, color: colors.text }]}
+            value={state}
+            onChangeText={setState}
+            placeholder="e.g. Texas, Berlin"
+            placeholderTextColor={colors.secondary}
+          />
+          <Text style={[styles.fieldLabel, { color: colors.text }]}>City</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.spaceBackground, borderColor: colors.cardBorder, color: colors.text }]}
+            value={city}
+            onChangeText={setCity}
+            placeholder="e.g. Austin, Toronto"
+            placeholderTextColor={colors.secondary}
+          />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -482,6 +523,16 @@ const styles = StyleSheet.create({
     fontSize: Typography.base,
     fontWeight: '700',
     marginBottom: Spacing.md,
+  },
+  sectionHint: {
+    fontSize: 13,
+    marginBottom: Spacing.md,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: Spacing.xs,
+    marginTop: Spacing.sm,
   },
   imagePicker: {
     width: '100%',

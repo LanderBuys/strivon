@@ -45,6 +45,9 @@ function toSpace(id: string, d: Record<string, unknown>, isJoined?: boolean): Sp
     isPrivate: !!d.isPrivate,
     requiresApproval: !!d.requiresApproval,
     isJoined,
+    country: d.country as string | undefined,
+    state: d.state as string | undefined,
+    city: d.city as string | undefined,
   };
 }
 
@@ -89,12 +92,17 @@ export async function createSpaceFirestore(
     description?: string;
     category?: string;
     color?: string;
+    banner?: string;
+    iconImage?: string;
     channels?: Array<{ name: string; description?: string }>;
     isPrivate?: boolean;
     requiresApproval?: boolean;
     rules?: string[];
     guidelines?: string;
     tags?: string[];
+    country?: string;
+    state?: string;
+    city?: string;
   }
 ): Promise<Space> {
   const db = getFirestoreDb();
@@ -108,7 +116,7 @@ export async function createSpaceFirestore(
         type: 'text' as const,
       }))
     : [{ id: `${id}-1`, name: 'general', description: 'General discussions', type: 'text' as const }];
-  const spaceData = {
+  const spaceData: Record<string, unknown> = {
     name: data.name.trim(),
     description: (data.description || '').trim(),
     category: data.category,
@@ -123,6 +131,11 @@ export async function createSpaceFirestore(
     tags: data.tags || [],
     createdAt: new Date().toISOString(),
   };
+  if (data.banner) spaceData.banner = data.banner;
+  if (data.iconImage) spaceData.iconImage = data.iconImage;
+  if (data.country) spaceData.country = data.country;
+  if (data.state) spaceData.state = data.state;
+  if (data.city) spaceData.city = data.city;
   const batch = writeBatch(db);
   batch.set(doc(db, SPACES, id), spaceData);
   batch.set(doc(db, SPACE_MEMBERS, `${id}_${ownerId}`), {
@@ -132,7 +145,7 @@ export async function createSpaceFirestore(
     joinedAt: new Date().toISOString(),
   });
   await batch.commit();
-  return toSpace(id, spaceData as Record<string, unknown>, true);
+  return toSpace(id, spaceData, true);
 }
 
 export async function joinSpaceFirestore(spaceId: string, userId: string): Promise<void> {
@@ -178,6 +191,9 @@ export async function updateSpaceFirestore(
     rules: string[];
     guidelines: string;
     tags: string[];
+    country: string;
+    state: string;
+    city: string;
     pinnedResources: Space['pinnedResources'];
     channels: Space['channels'];
   }>
@@ -201,6 +217,9 @@ export async function updateSpaceFirestore(
   if (data.rules !== undefined) updates.rules = data.rules;
   if (data.guidelines !== undefined) updates.guidelines = data.guidelines;
   if (data.tags !== undefined) updates.tags = data.tags;
+  if (data.country !== undefined) updates.country = data.country.trim() || null;
+  if (data.state !== undefined) updates.state = data.state.trim() || null;
+  if (data.city !== undefined) updates.city = data.city.trim() || null;
   if (data.pinnedResources !== undefined) updates.pinnedResources = data.pinnedResources;
   if (data.channels !== undefined) updates.channels = data.channels;
   if (Object.keys(updates).length === 0) {

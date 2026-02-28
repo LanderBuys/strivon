@@ -3,16 +3,19 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInAnonymously,
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
   sendEmailVerification,
   signInWithCredential,
   GoogleAuthProvider,
+  OAuthProvider,
   reload,
   type User,
   type UserCredential,
 } from 'firebase/auth';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { getFirebaseAuth, isFirebaseConfigured } from '@/lib/firebase';
 import { analyticsService } from '@/lib/services/analyticsService';
 import { ensureFirestoreUser } from '@/lib/firestore/users';
@@ -23,6 +26,7 @@ export interface AuthUser {
   emailVerified: boolean;
   displayName: string | null;
   photoURL: string | null;
+  isAnonymous: boolean;
 }
 
 function mapFirebaseUser(u: User): AuthUser {
@@ -32,6 +36,7 @@ function mapFirebaseUser(u: User): AuthUser {
     emailVerified: u.emailVerified,
     displayName: u.displayName ?? null,
     photoURL: u.photoURL ?? null,
+    isAnonymous: u.isAnonymous,
   };
 }
 
@@ -42,7 +47,9 @@ interface AuthContextType {
   isFirebaseEnabled: boolean;
   signIn: (email: string, password: string) => Promise<UserCredential>;
   signUp: (email: string, password: string) => Promise<UserCredential>;
+  signInAnonymously: () => Promise<UserCredential>;
   signInWithGoogle: () => Promise<UserCredential>;
+  signInWithApple: () => Promise<UserCredential>;
   signOut: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   sendVerificationEmail: () => Promise<void>;
@@ -96,6 +103,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [auth]
   );
 
+  const signInAnonymouslyCallback = useCallback(async () => {
+    if (!auth) throw new Error('Auth not configured');
+    return signInAnonymously(auth);
+  }, [auth]);
+
   const webClientId = Constants.expoConfig?.extra?.googleWebClientId as string | null | undefined;
   const isExpoGo = Constants.appOwnership === 'expo';
   const isGoogleSignInEnabled = !!auth && !!webClientId && !isExpoGo;
@@ -135,6 +147,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return signInWithCredential(auth, credential);
   }, [auth, webClientId, isExpoGo]);
 
+  const signInWithApple = useCallback(async () => {
+    if (!auth) throw new Error('Auth not configured');
+    if (Platform.OS !== 'ios') throw new Error('Sign in with Apple is only available on iOS.');
+    let AppleAuth: any;
+    try {
+      AppleAuth = require('expo-apple-authentication');
+    } catch {
+      throw new Error('Sign in with Apple is not available. Install expo-apple-authentication.');
+    }
+    const available = await AppleAuth.isAvailableAsync();
+    if (!available) throw new Error('Sign in with Apple is not available on this device.');
+    const Crypto = require('expo-crypto');
+    const rawNonce = Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+    const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce);
+    const { identityToken } = await AppleAuth.signInAsync({
+      requestedScopes: [
+        AppleAuth.AppleAuthenticationScope.EMAIL,
+        AppleAuth.AppleAuthenticationScope.FULL_NAME,
+      ],
+      nonce: hashedNonce,
+    });
+    if (!identityToken) throw new Error('Could not get Apple ID token.');
+    const provider = new OAuthProvider('apple.com');
+    const credential = provider.credential({ idToken: identityToken, rawNonce });
+    return signInWithCredential(auth, credential);
+  }, [auth]);
+
   const signOut = useCallback(async () => {
     if (auth) await firebaseSignOut(auth);
     setUser(null);
@@ -168,7 +207,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isFirebaseEnabled,
     signIn,
     signUp,
+    signInAnonymously: signInAnonymouslyCallback,
     signInWithGoogle,
+    signInWithApple,
     signOut,
     sendPasswordReset,
     sendVerificationEmail,

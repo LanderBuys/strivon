@@ -1,3 +1,6 @@
+/** Fallback background for auth/onboarding screens so the background is never black while the image loads */
+export const AUTH_SCREEN_FALLBACK_BG = '#F2F3F5';
+
 export const Colors = {
   light: {
     text: '#1C1C1E',

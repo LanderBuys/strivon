@@ -196,7 +196,7 @@ export default function NewsScreen() {
           <View style={styles.titleBlock}>
             <Text style={[styles.headerTitle, { color: colors.text }]}>News</Text>
             <Text style={[styles.headerSubtitle, { color: colors.secondary }]}>
-              Markets & insights
+              From the builder network
             </Text>
           </View>
           <TouchableOpacity

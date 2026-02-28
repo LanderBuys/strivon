@@ -66,26 +66,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
+  const isFeed = pathname?.startsWith("/app/feed") && !pathname?.includes("/app/feed/");
+
   return (
     <div className="flex min-h-screen bg-[var(--background)]">
-      <aside className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-[var(--card-border)] bg-[var(--card)] shadow-[var(--shadow)]">
-        <div className="flex h-[4.25rem] items-center border-b border-[var(--card-border)] px-5">
-          <Link href="/app/feed" className="smooth-nav-link flex items-center gap-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--card)]">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)] font-bold text-white shadow-sm">S</span>
-            <span className="text-lg font-bold tracking-tight text-[var(--foreground)]">Strivon</span>
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r border-[var(--divider)] bg-[var(--card)] lg:flex">
+        <div className="flex h-14 items-center border-b border-[var(--divider)] px-4">
+          <Link href="/app/feed" className="smooth-nav-link flex items-center gap-3 rounded-lg px-1 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--card)]">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)] font-semibold text-white text-sm">S</span>
+            <span className="text-lg font-semibold tracking-tight text-[var(--foreground)]">Strivon</span>
           </Link>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
+        <nav className="flex-1 space-y-0.5 p-3">
           {nav.map((item) => {
-            const active = pathname === item.href;
+            const path = pathname.replace(/\/$/, "") || "/";
+            const hrefNorm = item.href.replace(/\/$/, "") || "/";
+            const active = path === hrefNorm;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`smooth-nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium ${
+                className={`smooth-nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${
                   active
-                    ? "bg-[var(--accent-muted)] text-[var(--accent)] dark:text-[var(--accent)]"
-                    : "text-[var(--muted)] hover:bg-[var(--accent-subtle)] hover:text-[var(--foreground)]"
+                    ? "bg-[var(--accent-muted)] font-semibold text-[var(--accent)]"
+                    : "font-medium text-[var(--muted)] hover:bg-[var(--accent-subtle)] hover:text-[var(--foreground)]"
                 }`}
               >
                 {icons[item.icon]}
@@ -94,10 +98,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             );
           })}
         </nav>
-        <div className="border-t border-[var(--card-border)] p-3">
+        <div className="border-t border-[var(--divider)] p-3">
           <Link
             href="/"
-            className="smooth-nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-[var(--muted)] hover:bg-[var(--accent-subtle)] hover:text-[var(--foreground)]"
+            className="smooth-nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[var(--muted)] hover:bg-[var(--accent-subtle)] hover:text-[var(--foreground)]"
           >
             <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -106,25 +110,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Link>
         </div>
       </aside>
-      <main className="min-h-screen flex-1 pl-64">
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b border-[var(--card-border)] bg-[var(--card)]/90 px-6 backdrop-blur-md">
-          <h1 className="text-base font-semibold text-[var(--foreground)]">
-            {nav.find((n) => n.href === pathname)?.label ?? "Strivon"}
-          </h1>
-          <Link
-            href="/app/profile"
-            className="smooth-nav-link flex items-center gap-2 rounded-full p-1.5 ring-2 ring-transparent focus:outline-none focus:ring-2 focus:ring-[var(--accent)] hover:bg-[var(--accent-subtle)]"
-          >
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt="" className="h-9 w-9 rounded-full object-cover ring-2 ring-[var(--card-border)]" />
-            ) : (
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-semibold text-white ring-2 ring-[var(--card-border)]">
-                {user?.displayName?.[0] ?? user?.email?.[0] ?? "?"}
-              </span>
-            )}
-          </Link>
-        </header>
-        <div className="p-6 md:p-8">{children}</div>
+
+      <main className="min-h-screen flex-1 pl-0 lg:pl-64" data-app="strivon-web" style={{ backgroundColor: isFeed ? "var(--background)" : "var(--card)" }}>
+        {!isFeed && (
+          <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b border-[var(--divider)] bg-[var(--card)] px-4 shadow-[0_1px_3px_var(--shadow-color)] sm:px-6">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <h1 className="truncate text-base font-semibold text-[var(--foreground)]">
+                {(pathname === "/app/thread" || pathname === "/app/thread/") ? "Thread" : nav.find((n) => n.href === pathname)?.label ?? "Strivon"}
+              </h1>
+            </div>
+            <Link
+              href="/app/profile"
+              className="smooth-nav-link flex shrink-0 items-center gap-2 rounded-full p-1.5 ring-2 ring-transparent focus:outline-none focus:ring-2 focus:ring-[var(--accent)] hover:bg-[var(--accent-subtle)]"
+            >
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt="" className="h-9 w-9 rounded-full object-cover ring-2 ring-[var(--border)]" />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-semibold text-white ring-2 ring-[var(--border)]">
+                  {user?.displayName?.[0] ?? user?.email?.[0] ?? "?"}
+                </span>
+              )}
+            </Link>
+          </header>
+        )}
+        <div className={isFeed ? "min-h-[60vh]" : "min-h-[60vh] p-4 sm:p-6 lg:p-8"}>{children}</div>
       </main>
     </div>
   );

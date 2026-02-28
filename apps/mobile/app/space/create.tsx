@@ -12,6 +12,7 @@ import { Toast } from '@/components/ui/Toast';
 import * as ImagePicker from 'expo-image-picker';
 import { Image as ExpoImage } from 'expo-image';
 import { canCreatePrivateSpaces } from '@/lib/services/subscriptionService';
+import { uploadSpaceImage } from '@/lib/services/spaceImageUpload';
 
 const CATEGORIES = [
   // Trading & Investing
@@ -271,9 +272,13 @@ export default function CreateSpaceScreen() {
     : CATEGORIES;
 
   const handleCreate = async () => {
-    // Validation - name is required
-    if (!name.trim()) {
-      Alert.alert('Required Field', 'Please enter a space name.');
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      Alert.alert('Required field', 'Please enter a space name.');
+      return;
+    }
+    if (trimmedName.length < 2) {
+      Alert.alert('Name too short', 'Space name must be at least 2 characters.');
       return;
     }
 
@@ -281,15 +286,37 @@ export default function CreateSpaceScreen() {
     haptics.light();
 
     try {
+      let bannerUrl: string | undefined = bannerImage || undefined;
+      let iconUrl: string | undefined = iconImage || selectedPresetImageUrl || undefined;
+
+      if (bannerImage && (bannerImage.startsWith('file://') || bannerImage.startsWith('content://'))) {
+        try {
+          bannerUrl = await uploadSpaceImage(bannerImage, 'banner');
+        } catch (e) {
+          console.error('Banner upload failed:', e);
+          showToast('Banner upload failed. Creating without banner.', 'info');
+          bannerUrl = undefined;
+        }
+      }
+      if (iconImage && (iconImage.startsWith('file://') || iconImage.startsWith('content://'))) {
+        try {
+          iconUrl = await uploadSpaceImage(iconImage, 'icon');
+        } catch (e) {
+          console.error('Icon upload failed:', e);
+          showToast('Icon upload failed. Using preset or initials.', 'info');
+          iconUrl = selectedPresetImageUrl || undefined;
+        }
+      }
+
       const spaceData: CreateSpaceData = {
-        name: name.trim(),
+        name: trimmedName,
         description: description.trim() || undefined,
         category: category || undefined,
         color: selectedColor || undefined,
-        banner: bannerImage || undefined,
-        iconImage: iconImage || selectedPresetImageUrl || undefined,
-        isPrivate: canCreatePrivate ? isPrivate : false, // Only allow private if user has access
-        requiresApproval: requiresApproval,
+        banner: bannerUrl,
+        iconImage: iconUrl,
+        isPrivate: canCreatePrivate ? isPrivate : false,
+        requiresApproval: canCreatePrivate ? requiresApproval : false,
         rules: rules.filter(r => r.trim().length > 0),
         guidelines: guidelines.trim() || undefined,
         tags: tags.filter(t => t.trim().length > 0),
@@ -301,8 +328,6 @@ export default function CreateSpaceScreen() {
       const newSpace = await createSpace(spaceData);
       haptics.success();
       showToast('Space created successfully!', 'success');
-      
-      // Navigate to the new space after a short delay
       setTimeout(() => {
         router.replace(`/space/${newSpace.id}`);
       }, 500);
@@ -310,6 +335,7 @@ export default function CreateSpaceScreen() {
       console.error('Error creating space:', error);
       haptics.error();
       showToast('Failed to create space. Please try again.', 'error');
+    } finally {
       setLoading(false);
     }
   };
@@ -320,7 +346,7 @@ export default function CreateSpaceScreen() {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
-        
+        <View style={styles.container}>
         {/* Header */}
         <View style={[styles.header, styles.headerSafe, { backgroundColor: colors.background, borderBottomColor: colors.cardBorder }]}>
           <TouchableOpacity
@@ -341,14 +367,17 @@ export default function CreateSpaceScreen() {
           
           {/* Name */}
           <View style={styles.section}>
-            <Text style={[styles.label, { color: colors.text }]}>
-              Name <Text style={{ color: colors.error }}>*</Text>
-            </Text>
+            <View style={styles.labelRow}>
+              <Text style={[styles.label, { color: colors.text }]}>
+                Name <Text style={{ color: colors.error }}>*</Text>
+              </Text>
+              <Text style={[styles.charCount, { color: colors.secondary }]}>{name.length}/50</Text>
+            </View>
             <TextInput
               style={[styles.input, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder, color: colors.text }]}
               value={name}
               onChangeText={setName}
-              placeholder="Enter space name"
+              placeholder="Enter space name (min 2 characters)"
               placeholderTextColor={colors.secondary}
               maxLength={50}
             />
@@ -460,7 +489,10 @@ export default function CreateSpaceScreen() {
 
           {/* Description */}
           <View style={styles.section}>
-            <Text style={[styles.label, { color: colors.text }]}>Description</Text>
+            <View style={styles.labelRow}>
+              <Text style={[styles.label, { color: colors.text }]}>Description</Text>
+              <Text style={[styles.charCount, { color: colors.secondary }]}>{description.length}/500</Text>
+            </View>
             <TextInput
               style={[styles.textArea, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder, color: colors.text }]}
               value={description}
@@ -539,6 +571,11 @@ export default function CreateSpaceScreen() {
           {/* Privacy Settings */}
           <View style={styles.section}>
             <Text style={[styles.label, { color: colors.text }]}>Privacy Settings</Text>
+            {!canCreatePrivate && (
+              <Text style={[styles.hint, { color: colors.secondary, marginBottom: Spacing.sm }]}>
+                Upgrade to Pro or Premium to create private spaces
+              </Text>
+            )}
             <View style={styles.privacyContainer}>
               <TouchableOpacity
                 style={[
@@ -546,13 +583,16 @@ export default function CreateSpaceScreen() {
                   {
                     backgroundColor: isPrivate ? colors.primary + '15' : colors.cardBackground,
                     borderColor: isPrivate ? colors.primary : colors.cardBorder,
+                    opacity: canCreatePrivate ? 1 : 0.7,
                   },
                 ]}
                 onPress={() => {
+                  if (!canCreatePrivate) return;
                   haptics.light();
                   setIsPrivate(!isPrivate);
                 }}
-                activeOpacity={0.7}>
+                activeOpacity={0.7}
+                disabled={!canCreatePrivate}>
                 <View style={styles.privacyOptionLeft}>
                   <IconSymbol 
                     name={isPrivate ? "lock-closed" : "lock-open"} 
@@ -813,16 +853,17 @@ export default function CreateSpaceScreen() {
             style={[
               styles.createButton,
               {
-                backgroundColor: loading || !name.trim() ? colors.secondary + '40' : colors.primary,
+                backgroundColor: loading || !name.trim() || name.trim().length < 2 ? colors.secondary + '40' : colors.primary,
               },
             ]}
             onPress={handleCreate}
-            disabled={loading || !name.trim()}
+            disabled={loading || !name.trim() || name.trim().length < 2}
             activeOpacity={0.7}>
             <Text style={styles.createButtonText}>
               {loading ? 'Creating...' : 'Create Space'}
             </Text>
           </TouchableOpacity>
+        </View>
         </View>
       </KeyboardAvoidingView>
 
@@ -880,6 +921,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: Spacing.sm,
     letterSpacing: -0.1,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  charCount: {
+    fontSize: Typography.xs,
+    fontWeight: '500',
+    marginLeft: Spacing.xs,
   },
   input: {
     borderWidth: 1,
@@ -1049,7 +1101,9 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: Typography.xs,
-    marginTop: Spacing.xs,
+    lineHeight: Typography.xs * 1.4,
+    marginTop: Spacing.sm,
+    marginBottom: 0,
     fontStyle: 'italic',
   },
   footer: {

@@ -10,6 +10,7 @@ import { getPostById, likePost as apiLikePost, savePost as apiSavePost, votePoll
 import { Colors, Spacing, BorderRadius, Typography } from '@/constants/theme';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { addInteractedAuthorId } from '@/lib/services/viewedOrInteractedProfilesService';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function PostScreen() {
@@ -29,6 +30,7 @@ export default function PostScreen() {
     try {
       const result = await apiLikePost(post.id);
       setPost((p) => p ? { ...p, isLiked: result.isLiked, likes: result.likes } : null);
+      if (post.author?.id) addInteractedAuthorId(post.author.id).catch(() => {});
     } catch (e) {
       setPost((p) => p ? { ...p, isLiked: !p!.isLiked, likes: p!.isLiked ? p!.likes + 1 : p!.likes - 1 } : null);
     }
@@ -41,6 +43,7 @@ export default function PostScreen() {
     try {
       const result = await apiSavePost(post.id);
       setPost((p) => p ? { ...p, isSaved: result.isSaved, saves: result.saves } : null);
+      if (post.author?.id) addInteractedAuthorId(post.author.id).catch(() => {});
     } catch (e) {
       setPost((p) => p ? { ...p, isSaved: !p!.isSaved, saves: p!.isSaved ? p!.saves + 1 : p!.saves - 1 } : null);
     }

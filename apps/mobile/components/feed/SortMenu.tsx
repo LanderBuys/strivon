@@ -8,11 +8,17 @@ import { ContentFilterType } from './ContentFilters';
 
 export type SortOption = 'newest' | 'popular' | 'trending';
 
+/** Feed reach: local (same state), my country, or global. */
+export type LocationScope = 'local' | 'my_country' | 'global';
+
 interface SortMenuProps {
   activeSort: SortOption;
   onSortChange: (sort: SortOption) => void;
   activeFilter?: ContentFilterType;
   onFilterChange?: (filter: ContentFilterType) => void;
+  /** Location scope for feed: show Local / My country / Global. */
+  locationScope?: LocationScope;
+  onLocationScopeChange?: (scope: LocationScope) => void;
   visible: boolean;
   onClose: () => void;
 }
@@ -30,7 +36,22 @@ const filterOptions: { key: ContentFilterType; label: string; icon: string }[] =
   { key: 'links', label: 'Links', icon: 'link-outline' },
 ];
 
-export function SortMenu({ activeSort, onSortChange, activeFilter, onFilterChange, visible, onClose }: SortMenuProps) {
+const locationScopeOptions: { key: LocationScope; label: string; icon: string }[] = [
+  { key: 'global', label: 'Global', icon: 'globe-outline' },
+  { key: 'my_country', label: 'My country', icon: 'flag-outline' },
+  { key: 'local', label: 'Local', icon: 'location-outline' },
+];
+
+export function SortMenu({
+  activeSort,
+  onSortChange,
+  activeFilter,
+  onFilterChange,
+  locationScope = 'global',
+  onLocationScopeChange,
+  visible,
+  onClose,
+}: SortMenuProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const haptics = useHapticFeedback();
@@ -73,6 +94,51 @@ export function SortMenu({ activeSort, onSortChange, activeFilter, onFilterChang
                       isActive && { backgroundColor: colorScheme === 'dark' ? 'rgba(29, 155, 240, 0.15)' : 'rgba(29, 155, 240, 0.08)' },
                     ]}
                     onPress={() => handleFilterSelect(option.key)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name={option.icon as any}
+                      size={20}
+                      color={isActive ? colors.primary : colors.secondary}
+                      style={styles.menuIcon}
+                    />
+                    <Text
+                      style={[
+                        styles.menuItemText,
+                        {
+                          color: isActive ? colors.primary : colors.text,
+                          fontWeight: isActive ? '600' : '400',
+                        },
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                    {isActive && (
+                      <Ionicons name="checkmark" size={20} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+              <View style={[styles.divider, { backgroundColor: colors.divider }]} />
+            </>
+          )}
+          {onLocationScopeChange && (
+            <>
+              <Text style={[styles.menuTitle, { color: colors.text }]}>Show</Text>
+              {locationScopeOptions.map((option) => {
+                const isActive = locationScope === option.key;
+                return (
+                  <TouchableOpacity
+                    key={option.key}
+                    style={[
+                      styles.menuItem,
+                      isActive && { backgroundColor: colorScheme === 'dark' ? 'rgba(29, 155, 240, 0.15)' : 'rgba(29, 155, 240, 0.08)' },
+                    ]}
+                    onPress={() => {
+                      haptics.light();
+                      onLocationScopeChange(option.key);
+                      onClose();
+                    }}
                     activeOpacity={0.7}
                   >
                     <Ionicons

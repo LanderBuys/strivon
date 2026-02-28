@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,30 +9,50 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  ImageBackground,
 } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, Link } from 'expo-router';
+import { useRouter, Link, useLocalSearchParams } from 'expo-router';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/contexts/AuthContext';
+import { isProfileIncomplete } from '@/lib/firestore/users';
 import { Ionicons } from '@expo/vector-icons';
 import { sanitizeEmail } from '@/lib/utils/sanitize';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-
-const BG_IMAGE = require('@/assets/strivonbackgroundimage.png');
+import { LoadingScreen } from '@/components/LoadingScreen';
 
 export default function SignInScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ preloaded?: string }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { signIn, signInWithGoogle, isFirebaseEnabled, isGoogleSignInEnabled } = useAuth();
+  const { user, signIn, signInWithGoogle, signInWithApple, isFirebaseEnabled } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState('');
+  const [backgroundLoaded, setBackgroundLoaded] = useState(params.preloaded === '1');
+  const [loadingExiting, setLoadingExiting] = useState(false);
+
+  const handleBackgroundLoad = () => {
+    setBackgroundLoaded(true);
+    setLoadingExiting(true);
+  };
+
+  // If already signed in (e.g. sent here from index because profile incomplete), go to complete-profile or tabs
+  useEffect(() => {
+    if (!isFirebaseEnabled || !user?.uid) return;
+    let mounted = true;
+    isProfileIncomplete(user.uid).then((incomplete) => {
+      if (!mounted) return;
+      router.replace(incomplete ? '/complete-profile' : '/(tabs)');
+    });
+    return () => { mounted = false; };
+  }, [isFirebaseEnabled, user?.uid, router]);
 
   if (!isFirebaseEnabled) {
     return (
@@ -64,8 +84,14 @@ export default function SignInScreen() {
     }
     setLoading(true);
     try {
-      await signIn(e, password);
-      router.replace('/(tabs)');
+      const cred = await signIn(e, password);
+      const uid = cred?.user?.uid;
+      if (uid) {
+        const incomplete = await isProfileIncomplete(uid);
+        router.replace(incomplete ? '/complete-profile' : '/(tabs)');
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (err: any) {
       const message = err?.message ?? 'Sign-in failed. Check your email and password.';
       setError(message.includes('auth/') ? mapAuthError(message) : message);
@@ -88,10 +114,44 @@ export default function SignInScreen() {
     }
   };
 
+  const handleAppleSignIn = async () => {
+    setError('');
+    setAppleLoading(true);
+    try {
+      await signInWithApple();
+      router.replace('/(tabs)');
+    } catch (err: any) {
+      const msg = err?.message ?? 'Apple sign-in failed.';
+      setError(msg === 'Sign-in was cancelled.' ? '' : msg);
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
   return (
     <ErrorBoundary>
-      <ImageBackground source={BG_IMAGE} style={styles.bgImage} resizeMode="cover">
-        <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        <ExpoImage
+          source={require('@/assets/strivonbackgroundimage.png')}
+          style={styles.backgroundImage}
+          contentFit="cover"
+          transition={0}
+          onLoad={handleBackgroundLoad}
+        />
+        {(!backgroundLoaded || loadingExiting) && (
+          <View style={StyleSheet.absoluteFill}>
+            <LoadingScreen animated visible={!backgroundLoaded} onExitComplete={() => setLoadingExiting(false)} />
+          </View>
+        )}
+        {backgroundLoaded && (
+        <SafeAreaView
+          style={[
+            styles.container,
+            loadingExiting && styles.formHidden,
+          ]}
+          edges={['top']}
+          pointerEvents={loadingExiting ? 'none' : 'auto'}
+        >
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.keyboard}
@@ -158,22 +218,36 @@ export default function SignInScreen() {
                         <Text style={styles.primaryButtonText}>Sign in</Text>
                       )}
                     </TouchableOpacity>
-                    {isGoogleSignInEnabled ? (
+                    <TouchableOpacity
+                      style={[styles.googleButton, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
+                      onPress={handleGoogleSignIn}
+                      disabled={loading || googleLoading || appleLoading}
+                    >
+                      {googleLoading ? (
+                        <ActivityIndicator color={colors.text} />
+                      ) : (
+                        <>
+                          <Ionicons name="logo-google" size={20} color={colors.text} style={styles.googleIcon} />
+                          <Text style={[styles.googleButtonText, { color: colors.text }]}>Continue with Google</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                    {Platform.OS === 'ios' && (
                       <TouchableOpacity
                         style={[styles.googleButton, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
-                        onPress={handleGoogleSignIn}
-                        disabled={loading || googleLoading}
+                        onPress={handleAppleSignIn}
+                        disabled={loading || googleLoading || appleLoading}
                       >
-                        {googleLoading ? (
+                        {appleLoading ? (
                           <ActivityIndicator color={colors.text} />
                         ) : (
                           <>
-                            <Ionicons name="logo-google" size={20} color={colors.text} style={styles.googleIcon} />
-                            <Text style={[styles.googleButtonText, { color: colors.text }]}>Continue with Google</Text>
+                            <Ionicons name="logo-apple" size={20} color={colors.text} style={styles.googleIcon} />
+                            <Text style={[styles.googleButtonText, { color: colors.text }]}>Continue with Apple</Text>
                           </>
                         )}
                       </TouchableOpacity>
-                    ) : null}
+                    )}
                     <Link href="/forgot-password" asChild>
                       <TouchableOpacity style={styles.linkButton}>
                         <Text style={{ color: colors.primary }}>Forgot password?</Text>
@@ -193,7 +267,8 @@ export default function SignInScreen() {
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
-      </ImageBackground>
+        )}
+      </View>
     </ErrorBoundary>
   );
 }
@@ -207,28 +282,33 @@ function mapAuthError(message: string): string {
 }
 
 const styles = StyleSheet.create({
-  bgImage: { flex: 1, width: '100%', height: '100%' },
+  screen: { flex: 1 },
+  formHidden: { opacity: 0 },
+  backgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.6,
+  },
   container: { flex: 1 },
   keyboard: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 140,
+    paddingVertical: Spacing.xl,
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xxl,
   },
   centeredContent: {
     width: '100%',
     maxWidth: 400,
     alignSelf: 'center',
-    marginLeft: 14,
+    alignItems: 'center',
   },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
-  header: { marginBottom: Spacing.lg, marginLeft: 8, alignItems: 'flex-start' },
-  title: { fontSize: Typography.xxl, fontWeight: '700', marginBottom: Spacing.xs, textAlign: 'left' },
-  subtitle: { fontSize: Typography.base, textAlign: 'left' },
+  header: { marginTop: -72, marginBottom: Spacing.lg, alignItems: 'center' },
+  title: { fontSize: Typography.xxl, fontWeight: '700', marginBottom: Spacing.xs, textAlign: 'center' },
+  subtitle: { fontSize: Typography.base, textAlign: 'center' },
   formCard: {
+    alignSelf: 'stretch',
     marginTop: Spacing.sm,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,

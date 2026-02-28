@@ -31,7 +31,7 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto w-full max-w-2xl">
         <p className="text-[var(--muted)]">Please sign in to view your profile.</p>
       </div>
     );
@@ -39,7 +39,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto w-full max-w-2xl">
         <div className="h-52 animate-pulse rounded-2xl bg-[var(--card)] ring-1 ring-[var(--card-border)]" />
       </div>
     );
@@ -49,28 +49,28 @@ export default function ProfilePage() {
   const handle = profile?.handle ?? `@user${user.uid.slice(0, 8)}`;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto w-full max-w-2xl">
       <div className="app-card overflow-hidden">
         <div className="h-32 bg-gradient-to-br from-[var(--accent)] to-teal-600" />
-        <div className="relative px-6 pb-6 md:px-8 md:pb-8">
+        <div className="relative px-4 pb-4 sm:px-6 sm:pb-6 md:px-8 md:pb-8">
           <div className="-mt-12 flex flex-col items-start gap-4 sm:flex-row sm:items-end">
             {user.photoURL || profile?.avatar ? (
               <img
                 src={(user.photoURL || profile?.avatar) ?? ""}
                 alt=""
-                className="h-24 w-24 rounded-full border-4 border-[var(--card)] object-cover shadow-[var(--shadow)]"
+                className="h-20 w-20 shrink-0 rounded-full border-4 border-[var(--card)] object-cover shadow-[var(--shadow)] sm:h-24 sm:w-24"
               />
             ) : (
-              <span className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-[var(--card)] bg-[var(--accent-muted)] text-3xl font-semibold text-[var(--accent)] shadow-[var(--shadow)]">
+              <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-4 border-[var(--card)] bg-[var(--accent-muted)] text-2xl font-semibold text-[var(--accent)] shadow-[var(--shadow)] sm:h-24 sm:w-24 sm:text-3xl">
                 {displayName[0]}
               </span>
             )}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold text-[var(--foreground)]">{displayName}</h1>
-              <p className="text-[var(--muted)]">{handle}</p>
-              {profile?.bio && <p className="mt-2 text-[var(--muted-foreground)]">{profile.bio}</p>}
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-xl font-bold text-[var(--foreground)] sm:text-2xl">{displayName}</h1>
+              <p className="truncate text-[var(--muted)]">{handle}</p>
+              {profile?.bio && <p className="mt-2 text-sm text-[var(--muted-foreground)] sm:text-base">{profile.bio}</p>}
             </div>
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="flex flex-wrap gap-2 self-stretch sm:self-auto">
               <Link
                 href="/app/profile/edit"
                 className="smooth-btn rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--accent-subtle)]"

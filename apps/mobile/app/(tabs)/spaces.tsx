@@ -13,6 +13,7 @@ import { SpaceMiniCard } from '@/components/spaces/SpaceMiniCard';
 import { CommunitySpaceCard } from '@/components/spaces/CommunitySpaceCard';
 import { getSpacesPaginated, joinSpace, leaveSpace, getMyPendingJoinRequestIds } from '@/lib/api/spaces';
 import { getCurrentUserIdOrFallback } from '@/lib/api/users';
+import { getFirestoreUser } from '@/lib/firestore/users';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Spacing, Typography, BorderRadius } from '@/constants/theme';
@@ -45,7 +46,16 @@ export default function SpacesScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextOffset, setNextOffset] = useState(0);
+  const [currentUserLocation, setCurrentUserLocation] = useState<{ country?: string; state?: string }>({});
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  useEffect(() => {
+    const uid = getCurrentUserIdOrFallback();
+    if (!uid) return;
+    getFirestoreUser(uid).then((user) => {
+      if (user) setCurrentUserLocation({ country: user.country, state: user.state });
+    });
+  }, []);
 
   const surfaceBg = useMemo(
     () => (colorScheme === 'dark' ? 'rgba(255,255,255,0.06)' : colors.spaceBackground),
@@ -241,6 +251,18 @@ export default function SpacesScreen() {
     return spaces.filter(s => Boolean(s.isTrending) && !s.isJoined);
   }, [spaces]);
 
+  const localSpaces = useMemo(() => {
+    const country = currentUserLocation.country?.trim().toLowerCase();
+    const state = currentUserLocation.state?.trim().toLowerCase();
+    if (!country) return [];
+    return spaces.filter((s) => {
+      const sc = (s.country || '').trim().toLowerCase();
+      if (sc !== country) return false;
+      if (!state) return true;
+      return (s.state || '').trim().toLowerCase() === state;
+    });
+  }, [spaces, currentUserLocation]);
+
   const pendingRequestsCount = useMemo(() => hasPendingRequests.size, [hasPendingRequests]);
 
   const isAllDiscoverMode = !debouncedSearchQuery.trim() && activeFilter === 'all' && !showRequestsOnly;
@@ -361,7 +383,12 @@ export default function SpacesScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.cardBorder }]}>
         <View style={styles.headerTop}>
-          <Text style={[styles.title, { color: colors.text }]}>{showRequestsOnly ? 'Requests' : 'Community'}</Text>
+          <View style={styles.headerTitleBlock}>
+            <Text style={[styles.title, { color: colors.text }]}>{showRequestsOnly ? 'Requests' : 'Spaces'}</Text>
+            {!showRequestsOnly && (
+              <Text style={[styles.headerSubtitle, { color: colors.secondary }]} numberOfLines={1}>Your builder network</Text>
+            )}
+          </View>
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={[
@@ -524,6 +551,36 @@ export default function SpacesScreen() {
           ListHeaderComponent={
             !debouncedSearchQuery.trim() && activeFilter === 'all' && !showRequestsOnly ? (
               <View>
+                {localSpaces.length > 0 && (
+                  <View style={[styles.localSection, { borderBottomColor: colors.divider }]}>
+                    <View style={styles.sectionHeader}>
+                      <View style={styles.sectionHeaderLeft}>
+                        <View style={[styles.sectionIconContainer, { backgroundColor: colors.primary + '15' }]}>
+                          <IconSymbol name="location" size={12} color={colors.primary} />
+                        </View>
+                        <Text style={[styles.sectionLabel, { color: colors.text }]}>Spaces in your area</Text>
+                      </View>
+                    </View>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.localSpacesScroll}
+                    >
+                      {localSpaces.slice(0, 10).map((space) => (
+                        <View key={space.id} style={styles.localSpaceCardWrap}>
+                          <SpaceMiniCard
+                            space={enrichSpace(space, getCurrentUserIdOrFallback())}
+                            onPress={() => {
+                              haptics.light();
+                              router.push(`/space/${space.id}`);
+                            }}
+                            showName={true}
+                          />
+                        </View>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
                 {joinedSpaces.length === 0 && (discoverSpaces.length > 0 || categories.length > 0) ? (
                   <View style={[styles.getStartedCard, { backgroundColor: surfaceBg, borderColor: surfaceBorder }]}>
                     <View style={[styles.getStartedIconWrap, { backgroundColor: colors.primary + '18' }]}>
@@ -825,11 +882,19 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
   },
+  headerTitleBlock: {
+    flex: 1,
+  },
   title: {
     fontSize: 24,
     fontWeight: '800',
     letterSpacing: -0.4,
-    flex: 1,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
+    opacity: 0.85,
   },
   createButton: {
     width: 38,
@@ -970,6 +1035,17 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: Typography.sm,
     fontWeight: '600',
+  },
+  localSection: {
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  localSpacesScroll: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  localSpaceCardWrap: {
+    marginRight: Spacing.md,
   },
   sectionHeader: {
     flexDirection: 'row',

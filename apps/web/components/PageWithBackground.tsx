@@ -1,18 +1,24 @@
 import type { ReactNode } from "react";
 
-/** Full-bleed background. For sharp quality use a high-res image: see public/BACKGROUND_IMAGE.md */
+/** Full-bleed background. Fixed to viewport so grey body never shows when resizing or scrolling. */
 export function PageWithBackground({ children }: { children: ReactNode }) {
   return (
-    <div className="relative min-h-screen font-sans">
-      <img
-        src="/strivonbackgroundimagedesktop.jpeg"
-        alt=""
-        className="hero-bg-image absolute inset-0 h-full w-full select-none pointer-events-none object-cover object-top"
-        fetchPriority="high"
-        decoding="async"
+    <div className="page-with-bg relative min-h-screen w-full min-w-full overflow-x-hidden font-sans">
+      {/* Background image — fixed to viewport so it always covers */}
+      <div
+        className="fixed inset-0 z-0 bg-cover bg-top bg-no-repeat"
+        style={{ backgroundImage: "url(/strivonbackgroundimagedesktop.jpeg)" }}
+        aria-hidden
       />
-      <div className="absolute inset-0 bg-white/50 dark:bg-zinc-950/60" aria-hidden />
-      <div className="relative">{children}</div>
+      {/* Gradient overlay for readability and depth */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          background: "linear-gradient(to bottom, rgba(15,23,42,0.5) 0%, rgba(15,23,42,0.75) 50%, rgba(15,23,42,0.92) 100%)",
+        }}
+        aria-hidden
+      />
+      <div className="relative z-10 isolate">{children}</div>
     </div>
   );
 }

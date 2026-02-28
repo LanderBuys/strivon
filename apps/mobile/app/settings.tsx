@@ -288,6 +288,12 @@ export default function SettingsScreen() {
             colorScheme === 'light' && { borderColor: colors.cardBorder, ...styles.sectionContentLight }
           ]}>
             <SettingItem
+              icon="videocam-outline"
+              title="Saved Videos"
+              subtitle="Posts with video you've saved"
+              onPress={() => router.push('/settings/saved-videos')}
+            />
+            <SettingItem
               icon="filter-outline"
               title="Content Filters"
               subtitle="Mute keywords, users, spaces"
@@ -541,17 +547,18 @@ const styles = StyleSheet.create({
   },
   settingContent: {
     flex: 1,
+    justifyContent: 'center',
   },
   settingTitle: {
     fontSize: Typography.base,
     fontWeight: '600',
-    marginBottom: 3,
     letterSpacing: -0.2,
   },
   settingSubtitle: {
     fontSize: Typography.sm,
     opacity: 0.65,
-    lineHeight: Typography.sm * 1.3,
+    lineHeight: Typography.sm * 1.35,
+    marginTop: Spacing.xs,
   },
   settingRight: {
     marginRight: Spacing.sm,

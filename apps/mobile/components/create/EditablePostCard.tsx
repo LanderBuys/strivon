@@ -78,9 +78,21 @@ export function EditablePostCard({
       case PostType.WIN:
         return 'Win';
       case PostType.LOSS:
-        return 'Loss';
+        return 'Lesson';
       case PostType.COLLABORATION:
         return 'Collaboration';
+      case PostType.MILESTONE:
+        return 'Milestone';
+      case PostType.TIP:
+        return 'Tip';
+      case PostType.RESOURCE:
+        return 'Resource';
+      case PostType.LAUNCH:
+        return 'Launch';
+      case PostType.SHIP:
+        return 'Ship';
+      case PostType.TAKEAWAY:
+        return 'Takeaway';
       default:
         return 'Post';
     }

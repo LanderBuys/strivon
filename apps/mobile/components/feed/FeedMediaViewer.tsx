@@ -60,8 +60,8 @@ interface FeedMediaViewerProps {
   posts: Post[];
   initialPostId: string | null;
   onClose: () => void;
-  onLike?: (postId: string) => void;
-  onSave?: (postId: string) => void;
+  onLike?: (postId: string, authorId?: string) => void;
+  onSave?: (postId: string, authorId?: string) => void;
   onComment?: (postId: string) => void;
   onFollow?: (userId: string) => void;
 }
@@ -189,8 +189,8 @@ interface PostMediaSlideProps {
   isCurrentPost: boolean;
   bottomInset: number;
   topInset: number;
-  onLike?: (postId: string) => void;
-  onSave?: (postId: string) => void;
+  onLike?: (postId: string, authorId?: string) => void;
+  onSave?: (postId: string, authorId?: string) => void;
   onComment?: (postId: string) => void;
   onFollow?: (userId: string) => void;
   onSharePress?: () => void;
@@ -298,7 +298,7 @@ function PostMediaSlide({
               <DoubleTapToLike
                 onDoubleTap={() => {
                   haptics.medium();
-                  onLike?.(post.id);
+                  onLike?.(post.id, post.author?.id);
                 }}
                 style={StyleSheet.absoluteFill}
               >
@@ -370,7 +370,7 @@ function PostMediaSlide({
             </View>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.railItem} onPress={() => { haptics.light(); onLike?.(post.id); }} activeOpacity={0.7} hitSlop={8}>
+        <TouchableOpacity style={styles.railItem} onPress={() => { haptics.light(); onLike?.(post.id, post.author?.id); }} activeOpacity={0.7} hitSlop={8}>
           <Ionicons name={post.isLiked ? 'heart' : 'heart-outline'} size={RAIL_ICON_SIZE} color={post.isLiked ? '#FF375F' : '#FFF'} />
           <Text style={styles.railCount}>{formatCount(post.likes) || '0'}</Text>
         </TouchableOpacity>
@@ -378,7 +378,7 @@ function PostMediaSlide({
           <Ionicons name="chatbubble-ellipses-outline" size={RAIL_ICON_SIZE} color="#FFF" />
           <Text style={styles.railCount}>{formatCount(post.comments ?? 0) || '0'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.railItem} onPress={() => { haptics.light(); onSave?.(post.id); }} activeOpacity={0.7} hitSlop={8}>
+        <TouchableOpacity style={styles.railItem} onPress={() => { haptics.light(); onSave?.(post.id, post.author?.id); }} activeOpacity={0.7} hitSlop={8}>
           <Ionicons name={post.isSaved ? 'bookmark' : 'bookmark-outline'} size={RAIL_ICON_SIZE} color="#FFF" />
           <Text style={styles.railCount}>{formatCount(post.saves ?? 0) || '0'}</Text>
         </TouchableOpacity>

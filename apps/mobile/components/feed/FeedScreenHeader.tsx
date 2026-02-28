@@ -43,7 +43,10 @@ export function FeedScreenHeader({
       ]}
       accessibilityRole="header"
     >
-      <Text style={[styles.appName, { color: colors.text }]}>Strivon</Text>
+      <View>
+        <Text style={[styles.appName, { color: colors.text }]}>Strivon</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.secondary }]} numberOfLines={1}>Your builder network</Text>
+      </View>
       <View style={styles.headerIcons}>
         <AnimatedPressable
           scale={0.92}
@@ -71,7 +74,7 @@ export function FeedScreenHeader({
           accessibilityLabel="Create post"
           accessibilityHint="Opens create post screen"
         >
-          <Ionicons name="add-outline" size={24} color={colors.text} />
+          <Ionicons name="create-outline" size={24} color={colors.text} />
         </AnimatedPressable>
         <AnimatedPressable
           scale={0.92}
@@ -86,7 +89,7 @@ export function FeedScreenHeader({
           accessibilityHint="Opens notifications"
         >
           <View style={styles.notificationIconContainer}>
-            <Ionicons name="heart-outline" size={22} color={colors.text} />
+            <Ionicons name="notifications-outline" size={22} color={colors.text} />
             {unreadNotifications > 0 && (
               <View
                 style={[
@@ -123,6 +126,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     letterSpacing: -0.4,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
+    opacity: 0.85,
   },
   headerIcons: {
     flexDirection: 'row',

@@ -465,11 +465,12 @@ export default function InboxScreen() {
           }
           ListEmptyComponent={
             <EmptyState
-              icon="message"
+              icon="chatbubbles-outline"
               title="No conversations yet"
-              message="Start a chat or create a group to see your conversations here."
+              message="Start conversations with people you meet in your Feed and Spaces."
               actions={[
                 { label: 'New message', onPress: handleOpenNewMessage, variant: 'primary' },
+                { label: 'Find builders', onPress: () => { haptics.light(); router.push('/search'); }, variant: 'secondary' },
               ]}
             />
           }

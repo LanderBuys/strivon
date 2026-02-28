@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { getFirestoreDb, getCurrentUserId } from '@/lib/firebase';
 import { getFollowingIds } from './users';
-import type { Post, PostMedia, User } from '@/types/post';
+import type { Post, PostMedia, User, PostType } from '@/types/post';
 
 const POSTS = 'posts';
 const POST_LIKES = 'postLikes';
@@ -27,6 +27,9 @@ function toAuthor(data: Record<string, unknown>): User {
     avatar: (data.avatar as string) ?? null,
     label: data.label as string | undefined,
     country: data.country as string | undefined,
+    state: data.state as string | undefined,
+    city: data.city as string | undefined,
+    openToLocalMeetups: data.openToLocalMeetups as boolean | undefined,
   };
 }
 
@@ -53,6 +56,7 @@ function toPost(id: string, data: Record<string, unknown>, isLiked?: boolean, is
     poll: data.poll as any,
     contentWarning: data.contentWarning as string | null | undefined,
     hashtags: data.hashtags as string[] | undefined,
+    postType: data.type as PostType | undefined,
     ownerUid: data.ownerUid as string | undefined,
     mediaId: data.mediaId as string | undefined,
     visibility: data.visibility as 'public' | 'private' | undefined,
@@ -69,6 +73,8 @@ export async function createPostFirestore(
     poll?: any;
     contentWarning?: string | null;
     hashtags?: string[];
+    /** Post type: BUILD_LOG, QUESTION, WIN, LOSS, COLLABORATION, CONTENT */
+    type?: PostType;
     /** When set, post is created as processing/private until media is approved. */
     mediaId?: string;
   }
@@ -88,6 +94,9 @@ export async function createPostFirestore(
       avatar: author.avatar ?? null,
       label: author.label,
       country: author.country,
+      state: author.state,
+      city: author.city,
+      openToLocalMeetups: author.openToLocalMeetups,
     },
     content: data.content || '',
     title: data.title || undefined,
@@ -100,6 +109,7 @@ export async function createPostFirestore(
     poll: data.poll || null,
     contentWarning: data.contentWarning || null,
     hashtags: data.hashtags || [],
+    ...(data.type ? { type: data.type } : {}),
     updatedAt: serverTimestamp(),
     visibility: hasMediaPending ? 'private' : 'public',
     status: hasMediaPending ? 'processing' : 'published',

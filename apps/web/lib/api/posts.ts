@@ -1,6 +1,7 @@
-import { getFirestoreDb, getCurrentUserId } from "@/lib/firebase";
+import { getFirestoreDb, getCurrentUserId, isFirebaseConfigured } from "@/lib/firebase";
 import {
   getFeedPostsFirestore,
+  getPostByIdFirestore,
   createPostFirestore,
   likePostFirestore,
   savePostFirestore,
@@ -11,6 +12,16 @@ import { mockPosts } from "@/lib/mocks/posts";
 
 function getCurrentUserIdOrFallback(): string {
   return getCurrentUserId() ?? "1";
+}
+
+export async function getPostById(postId: string): Promise<Post | null> {
+  const db = getFirestoreDb();
+  if (db) {
+    const post = await getPostByIdFirestore(postId);
+    if (post) return post;
+  }
+  const mock = mockPosts.find((p) => p.id === postId);
+  return mock ?? null;
 }
 
 export async function getFeedPosts(
@@ -31,7 +42,12 @@ export async function getFeedPosts(
 
 export async function createPost(data: { content?: string; title?: string }): Promise<Post> {
   const db = getFirestoreDb();
-  if (!db) throw new Error("Firestore not configured. Sign in and try again.");
+  if (!db) {
+    if (!isFirebaseConfigured()) {
+      throw new Error("Firebase is not configured. Add NEXT_PUBLIC_FIREBASE_* env vars (see .env.example) to create posts.");
+    }
+    throw new Error("Sign in to create posts.");
+  }
   const uid = getCurrentUserIdOrFallback();
   const author = await getUserById(uid);
   if (!author) throw new Error("User not found");

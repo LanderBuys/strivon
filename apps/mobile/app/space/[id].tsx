@@ -728,12 +728,23 @@ export default function SpaceDetailScreen() {
                   </TouchableOpacity>
                 )}
                 <View pointerEvents="box-none">
+                  {space?.name && (
+                    <Text style={[styles.inSpaceLabel, { color: colors.secondary }]} numberOfLines={1}>
+                      In Space: {space.name}
+                    </Text>
+                  )}
                   <PostCard
                     post={post}
                     onLike={() => {}}
                     onSave={() => {}}
                     onComment={() => {}}
-                    onPress={() => router.push(`/thread/${post.id}`)}
+                    onPress={() => {
+                    const query = new URLSearchParams();
+                    if (space?.name) query.set('spaceName', space.name);
+                    if (id) query.set('spaceId', id);
+                    const qs = query.toString();
+                    router.push(`/thread/${post.id}${qs ? `?${qs}` : ''}`);
+                  }}
                     onLongPress={(p) => {
                       if (!p.author) return;
                       const opts = getReportBlockOptions({ id: p.author.id, name: p.author.name, handle: p.author.handle, avatar: p.author.avatar });
@@ -4662,6 +4673,14 @@ const styles = StyleSheet.create({
   postWrapper: {
     position: 'relative',
     marginBottom: Spacing.md,
+  },
+  inSpaceLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: Spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    opacity: 0.9,
   },
   pinnedPostWrapper: {
     borderLeftWidth: 3,

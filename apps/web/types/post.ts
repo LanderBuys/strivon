@@ -53,3 +53,17 @@ export interface Space {
   isTrending?: boolean;
   ownerId?: string;
 }
+
+export interface ThreadMessage {
+  id: string;
+  author: User;
+  content: string;
+  createdAt: string;
+  editedAt?: string;
+  reactions?: Array<{ emoji: string; count: number; userReacted?: boolean }>;
+  replyTo?: string;
+  media?: unknown[];
+  status?: "sending" | "sent" | "delivered" | "read";
+  pinned?: boolean;
+  mentions?: string[];
+}

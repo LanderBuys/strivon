@@ -26,6 +26,9 @@ function firestoreToUser(u: FirestoreUser): UserRecord {
     banner: u.banner,
     occupation: u.occupation,
     country: u.country,
+    state: u.state,
+    city: u.city,
+    openToLocalMeetups: u.openToLocalMeetups,
     joinDate: u.joinDate,
   };
 }
@@ -90,6 +93,22 @@ export async function isFollowing(userId: string, targetUserId: string): Promise
   const db = getFirestoreDb();
   if (db) return isFollowingFirestore(userId, targetUserId);
   return false;
+}
+
+/** Fast follower count only (no user docs). Use for profile header. */
+export async function getFollowerCount(userId: string): Promise<number> {
+  const db = getFirestoreDb();
+  if (!db) return 0;
+  const ids = await getFollowerIds(userId);
+  return ids.length;
+}
+
+/** Fast following count only (no user docs). Use for profile header. */
+export async function getFollowingCount(userId: string): Promise<number> {
+  const db = getFirestoreDb();
+  if (!db) return 0;
+  const ids = await getFollowingIds(userId);
+  return ids.length;
 }
 
 export async function getFollowers(userId: string): Promise<UserRecord[]> {

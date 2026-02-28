@@ -34,12 +34,17 @@ export function isFirebaseConfigured(): boolean {
   );
 }
 
+/** Project ID from env — use to verify you're checking the right project in Firebase Console. */
+export function getFirebaseProjectId(): string | null {
+  return EXPO_PUBLIC_FIREBASE_PROJECT_ID ?? null;
+}
+
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 let storage: FirebaseStorage | null = null;
 
-/** Current signed-in user id, or null. Use this in API layer instead of mock CURRENT_USER_ID. */
+/** Current signed-in user id, or null. */
 export function getCurrentUserId(): string | null {
   const a = getFirebaseAuth();
   return a?.currentUser?.uid ?? null;

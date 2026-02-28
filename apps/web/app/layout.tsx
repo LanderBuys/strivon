@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { AUTH_BG_DATA_URL } from "@/lib/auth-bg-data.generated";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,6 +21,7 @@ export const metadata: Metadata = {
   description: "A social platform for entrepreneurs, builders, and creators. Share your journey, join spaces, and connect with like-minded people.",
   keywords: ["social", "entrepreneurs", "creators", "community", "spaces", "Strivon"],
   authors: [{ name: "Strivon" }],
+  icons: { icon: "/logoStrivon.png", apple: "/logoStrivon.png" },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -48,8 +50,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const bgImage = AUTH_BG_DATA_URL
+    ? `url(${AUTH_BG_DATA_URL})`
+    : "url(/strivonbackgroundimagedesktop.jpeg)";
+  const authBgStyle = `.auth-bg-inline{background-image:${bgImage};background-size:cover;background-position:center;}`;
+
   return (
     <html lang="en">
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: authBgStyle }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

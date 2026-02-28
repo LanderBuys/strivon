@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Image as ExpoImage } from 'expo-image';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { shouldShowOnboarding } from './onboarding';
 import { useAuth } from '@/contexts/AuthContext';
 import { isProfileIncomplete } from '@/lib/firestore/users';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useEntranceAnimation } from '@/hooks/useEntranceAnimation';
 
 export default function InitialRedirect() {
   const router = useRouter();
@@ -14,19 +15,21 @@ export default function InitialRedirect() {
   const colors = Colors[colorScheme ?? 'light'];
   const { user, loading: authLoading, isFirebaseEnabled } = useAuth();
   const [checking, setChecking] = useState(true);
+  const [signInImageReady, setSignInImageReady] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       if (authLoading) return;
       if (!mounted) return;
-      // Require login when Firebase is enabled — no anonymous access
       if (isFirebaseEnabled && !user) {
-        router.replace('/sign-in');
-        setChecking(false);
+        // Wait for sign-in background image to load so we only show one loading screen
+        if (signInImageReady) {
+          router.replace('/sign-in?preloaded=1');
+          setChecking(false);
+        }
         return;
       }
-      // If Firebase is not configured, allow through (dev fallback)
       if (!isFirebaseEnabled) {
         try {
           const showOnboarding = await shouldShowOnboarding();
@@ -42,6 +45,7 @@ export default function InitialRedirect() {
       try {
         const showOnboarding = await shouldShowOnboarding();
         if (!mounted) return;
+        if (!user) return;
         if (showOnboarding) {
           router.replace('/onboarding');
           setChecking(false);
@@ -66,24 +70,43 @@ export default function InitialRedirect() {
       }
     })();
     return () => { mounted = false; };
-  }, [router, user, authLoading, isFirebaseEnabled]);
+  }, [router, user, authLoading, isFirebaseEnabled, signInImageReady]);
 
-  const { opacity, scale } = useEntranceAnimation(320, 0);
+  // When we need to go to sign-in, preload the background image first so we only show one loading screen
+  const needSignIn = isFirebaseEnabled && !user && !authLoading;
+  useEffect(() => {
+    if (!needSignIn) return;
+    setSignInImageReady(false);
+    const fallback = setTimeout(() => setSignInImageReady(true), 2500);
+    return () => clearTimeout(fallback);
+  }, [needSignIn]);
 
-  if (!checking) return null;
+  if (!checking && !needSignIn) return null;
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Animated.View style={{ opacity, transform: [{ scale }] }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </Animated.View>
+    <View style={StyleSheet.absoluteFill}>
+      {needSignIn ? (
+        <>
+          <ExpoImage
+            source={require('@/assets/strivonbackgroundimage.png')}
+            style={[StyleSheet.absoluteFillObject, { opacity: 0 }]}
+            onLoad={() => setSignInImageReady(true)}
+          />
+          <LoadingScreen message="Loading" animated />
+        </>
+      ) : (
+        <View style={[styles.minimalLoader, { backgroundColor: colors.background }]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  minimalLoader: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
 });
+

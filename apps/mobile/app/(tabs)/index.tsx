@@ -14,7 +14,7 @@ import { FeedTabs, FeedTabType } from '@/components/feed/FeedTabs';
 import { PostSkeleton } from '@/components/feed/PostSkeleton';
 import { ScrollToTopButton } from '@/components/feed/ScrollToTopButton';
 import { ContentFilterType } from '@/components/feed/ContentFilters';
-import { SortMenu, SortOption } from '@/components/feed/SortMenu';
+import { SortMenu, SortOption, LocationScope } from '@/components/feed/SortMenu';
 import { SearchOverlay } from '@/components/feed/SearchOverlay';
 import { FeedScreenHeader } from '@/components/feed/FeedScreenHeader';
 import { FeedMediaViewer } from '@/components/feed/FeedMediaViewer';
@@ -31,12 +31,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sortPostsUnseenFirst } from '@/lib/utils/feedUtils';
 import { addReport } from '@/lib/services/reportQueueService';
 import { getRemovedPostIds } from '@/lib/services/reportQueueService';
+import { addInteractedAuthorId } from '@/lib/services/viewedOrInteractedProfilesService';
 import { useCurrentUserId } from '@/hooks/useCurrentUserId';
 import { checkAndPublishScheduledPosts } from '@/lib/services/scheduledPostsService';
+import { getFirestoreUser } from '@/lib/firestore/users';
 
 const SKELETON_COUNT = 3;
 const FEED_SORT_KEY = '@strivon/feed_sort';
 const FEED_FILTER_KEY = '@strivon/feed_filter';
+const FEED_LOCATION_SCOPE_KEY = '@strivon/feed_location_scope';
 const HEADER_HEIGHT_DEFAULT = 108;
 const SEEN_VIEWABLE_MS = 2200;
 
@@ -82,9 +85,11 @@ export default function FeedScreen() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [sortOption, setSortOptionState] = useState<SortOption>('newest');
   const [contentFilter, setContentFilterState] = useState<ContentFilterType>('all');
+  const [locationScope, setLocationScopeState] = useState<LocationScope>('global');
   const [feedPrefsLoaded, setFeedPrefsLoaded] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [removedPostIds, setRemovedPostIds] = useState<Set<string>>(new Set());
+  const [currentUserLocation, setCurrentUserLocation] = useState<{ country?: string; state?: string }>({});
 
   const setSortOption = useCallback((sort: SortOption) => {
     setSortOptionState(sort);
@@ -94,14 +99,19 @@ export default function FeedScreen() {
     setContentFilterState(filter);
     AsyncStorage.setItem(FEED_FILTER_KEY, filter).catch(() => {});
   }, []);
+  const setLocationScope = useCallback((scope: LocationScope) => {
+    setLocationScopeState(scope);
+    AsyncStorage.setItem(FEED_LOCATION_SCOPE_KEY, scope).catch(() => {});
+  }, []);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const [storedSort, storedFilter] = await Promise.all([
+        const [storedSort, storedFilter, storedScope] = await Promise.all([
           AsyncStorage.getItem(FEED_SORT_KEY),
           AsyncStorage.getItem(FEED_FILTER_KEY),
+          AsyncStorage.getItem(FEED_LOCATION_SCOPE_KEY),
         ]);
         if (mounted) {
           if (storedSort && ['newest', 'popular', 'trending'].includes(storedSort)) {
@@ -109,6 +119,9 @@ export default function FeedScreen() {
           }
           if (storedFilter && ['all', 'media', 'text', 'links'].includes(storedFilter)) {
             setContentFilterState(storedFilter as ContentFilterType);
+          }
+          if (storedScope && ['local', 'my_country', 'global'].includes(storedScope)) {
+            setLocationScopeState(storedScope as LocationScope);
           }
           setFeedPrefsLoaded(true);
         }
@@ -118,6 +131,13 @@ export default function FeedScreen() {
     })();
     return () => { mounted = false; };
   }, []);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    getFirestoreUser(currentUserId).then((user) => {
+      if (user) setCurrentUserLocation({ country: user.country, state: user.state });
+    });
+  }, [currentUserId]);
   const [mediaViewerPostId, setMediaViewerPostId] = useState<string | null>(null);
   const [skipNextEnterAnimation, setSkipNextEnterAnimation] = useState(false);
   const returnToMediaViewerPostIdRef = useRef<string | null>(null);
@@ -131,10 +151,21 @@ export default function FeedScreen() {
   );
 
   const posts = useMemo(() => {
-    const list = visibleTab === 'for-you' ? forYouPosts : followingPosts;
-    if (removedPostIds.size === 0) return list;
-    return list.filter((p) => !removedPostIds.has(p.id));
-  }, [visibleTab, forYouPosts, followingPosts, removedPostIds]);
+    let list = visibleTab === 'for-you' ? forYouPosts : followingPosts;
+    if (removedPostIds.size > 0) {
+      list = list.filter((p) => !removedPostIds.has(p.id));
+    }
+    if (locationScope === 'global' || !currentUserLocation.country) return list;
+    const country = (currentUserLocation.country || '').trim().toLowerCase();
+    const state = (currentUserLocation.state || '').trim().toLowerCase();
+    return list.filter((p) => {
+      const authorCountry = (p.author?.country || '').trim().toLowerCase();
+      if (authorCountry !== country) return false;
+      if (locationScope === 'my_country') return true;
+      const authorState = (p.author?.state || '').trim().toLowerCase();
+      return authorState === state;
+    });
+  }, [visibleTab, forYouPosts, followingPosts, removedPostIds, locationScope, currentUserLocation]);
 
   const handleReportPost = useCallback((post: Post) => {
     const reasons = ['Spam', 'Harassment or bullying', 'Inappropriate content', 'Gore or violence', 'Scam or fraud', 'Misinformation', 'Other'];
@@ -494,7 +525,7 @@ export default function FeedScreen() {
     });
   }, [visibleTab]);
 
-  const handleLike = useCallback(async (postId: string) => {
+  const handleLike = useCallback(async (postId: string, authorId?: string) => {
     let wasLiked = false;
     setCurrentPosts(prevPosts => {
       const post = prevPosts.find(p => p.id === postId);
@@ -517,6 +548,7 @@ export default function FeedScreen() {
           post.id === postId ? { ...post, isLiked: result.isLiked, likes: result.likes } : post
         )
       );
+      if (authorId) addInteractedAuthorId(authorId).catch(() => {});
       if (!wasLiked) {
         const { incrementEngagement } = await import('@/lib/services/userMetricsService');
         await incrementEngagement();
@@ -533,7 +565,7 @@ export default function FeedScreen() {
   }, [haptics, setCurrentPosts]);
 
 
-  const handleSave = useCallback(async (postId: string) => {
+  const handleSave = useCallback(async (postId: string, authorId?: string) => {
     setCurrentPosts(prevPosts =>
       prevPosts.map(post =>
         post.id === postId
@@ -553,6 +585,7 @@ export default function FeedScreen() {
           post.id === postId ? { ...post, isSaved: result.isSaved, saves: result.saves } : post
         )
       );
+      if (authorId) addInteractedAuthorId(authorId).catch(() => {});
     } catch (e) {
       setCurrentPosts(prevPosts =>
         prevPosts.map(post =>
@@ -651,8 +684,8 @@ export default function FeedScreen() {
           <View style={styles.postWrapper} collapsable={false}>
             <PostCard
               post={item}
-              onLike={() => handleLike(item.id)}
-              onSave={() => handleSave(item.id)}
+              onLike={() => handleLike(item.id, item.author?.id)}
+              onSave={() => handleSave(item.id, item.author?.id)}
               onComment={() => handleComment(item.id)}
               onPress={() => handlePostPress(item.id)}
               onLongPress={handlePostLongPress}
@@ -944,6 +977,8 @@ export default function FeedScreen() {
         onSortChange={setSortOption}
         activeFilter={contentFilter}
         onFilterChange={setContentFilter}
+        locationScope={locationScope}
+        onLocationScopeChange={setLocationScope}
         visible={showSortMenu}
         onClose={() => setShowSortMenu(false)}
       />

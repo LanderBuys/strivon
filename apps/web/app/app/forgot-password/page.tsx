@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { sanitizeEmail, mapAuthError } from "@/lib/utils/auth";
@@ -46,7 +45,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-zinc-900">
-      <Image src="/strivonbackgroundimagedesktop.jpeg" alt="" fill className="object-cover opacity-60" priority />
+      <div className="auth-bg-inline absolute inset-0 opacity-60" aria-hidden />
       <div className="relative flex min-h-screen items-center justify-center p-6">
         <div className="w-full max-w-md">
           <div className="rounded-2xl border border-white/10 bg-white/95 p-8 shadow-xl backdrop-blur dark:bg-zinc-900/95 dark:border-zinc-700">

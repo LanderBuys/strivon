@@ -5,7 +5,6 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  ImageBackground,
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,13 +17,11 @@ import { isProfileIncomplete } from '@/lib/firestore/users';
 import { Ionicons } from '@expo/vector-icons';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-const BG_IMAGE = require('@/assets/strivonbackgroundimage.png');
-
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { user, sendVerificationEmail, reloadUser } = useAuth();
+  const { user, sendVerificationEmail, reloadUser, loading: authLoading, isFirebaseEnabled } = useAuth();
   const [loading, setLoading] = useState(true);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
@@ -54,6 +51,16 @@ export default function VerifyEmailScreen() {
       })
       .finally(() => setLoading(false));
   }, [user?.uid, user?.emailVerified, user?.email]);
+
+  // If app opens to this screen but user is not logged in, go to sign-in
+  useEffect(() => {
+    if (isFirebaseEnabled && !authLoading && !user) {
+      router.replace('/sign-in');
+    }
+  }, [isFirebaseEnabled, authLoading, user, router]);
+
+  if (isFirebaseEnabled && authLoading) return null;
+  if (isFirebaseEnabled && !user) return null;
 
   const handleResend = async () => {
     setError('');
@@ -118,7 +125,7 @@ export default function VerifyEmailScreen() {
 
   return (
     <ErrorBoundary>
-      <ImageBackground source={BG_IMAGE} style={styles.bgImage} resizeMode="cover">
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.header}>
             <TouchableOpacity
@@ -235,13 +242,13 @@ export default function VerifyEmailScreen() {
             </View>
           </ScrollView>
         </SafeAreaView>
-      </ImageBackground>
+      </View>
     </ErrorBoundary>
   );
 }
 
 const styles = StyleSheet.create({
-  bgImage: { flex: 1, width: '100%', height: '100%' },
+  screen: { flex: 1 },
   container: { flex: 1 },
   header: {
     paddingHorizontal: Spacing.lg,

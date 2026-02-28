@@ -1,22 +1,12 @@
 import Link from "next/link";
 import { PageWithBackground } from "@/components/PageWithBackground";
+import { SiteHeader } from "@/components/SiteHeader";
 import { ScrollReveal } from "@/components/ScrollReveal";
 
 export default function About() {
   return (
     <PageWithBackground>
-      <header className="sticky top-0 z-10 border-b border-zinc-200/80 bg-white/85 backdrop-blur-md dark:border-zinc-700/80 dark:bg-zinc-950/85">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4 sm:px-8">
-            <Link href="/" className="smooth-nav-link flex items-center rounded-md hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2 dark:focus:ring-zinc-500">
-              <span className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-2xl">Strivon</span>
-            </Link>
-            <nav className="flex items-center gap-2">
-              <Link href="/about" className="smooth-nav-link rounded-lg px-3 py-2 text-sm font-medium text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800">About</Link>
-              <Link href="/pricing" className="smooth-nav-link rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800">Pricing</Link>
-              <Link href="/waitlist" className="smooth-btn rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:scale-[1.02] hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200">Join the waitlist</Link>
-            </nav>
-          </div>
-        </header>
+      <SiteHeader />
 
         <main className="mx-auto max-w-2xl px-6 py-16 sm:px-8 sm:py-20">
           <ScrollReveal>
@@ -55,14 +45,21 @@ export default function About() {
           </ScrollReveal>
         </main>
 
-        <footer className="border-t border-zinc-200/80 px-6 py-12 dark:border-zinc-700/80">
-          <div className="mx-auto flex max-w-6xl justify-center gap-8 text-sm text-zinc-500 dark:text-zinc-400">
-            <Link href="/" className="smooth-nav-link hover:text-zinc-900 dark:hover:text-zinc-100">Home</Link>
-            <Link href="/pricing" className="smooth-nav-link hover:text-zinc-900 dark:hover:text-zinc-100">Pricing</Link>
-            <Link href="/waitlist" className="smooth-nav-link hover:text-zinc-900 dark:hover:text-zinc-100">Join the waitlist</Link>
-            <Link href="/privacy" className="smooth-nav-link hover:text-zinc-900 dark:hover:text-zinc-100">Privacy</Link>
-            <Link href="/terms" className="smooth-nav-link hover:text-zinc-900 dark:hover:text-zinc-100">Terms</Link>
+        <footer className="border-t border-[var(--card-border)]/80 px-6 py-12 sm:px-8">
+          <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 sm:flex-row sm:justify-between">
+            <Link href="/" className="font-semibold text-[var(--foreground)]">Strivon</Link>
+            <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-[var(--muted)]">
+              <Link href="/about" className="smooth-nav-link hover:text-[var(--accent)]">About</Link>
+              <Link href="/pricing" className="smooth-nav-link hover:text-[var(--accent)]">Pricing</Link>
+              <Link href="/waitlist" className="smooth-nav-link hover:text-[var(--accent)]">Waitlist</Link>
+              <Link href="/privacy" className="smooth-nav-link hover:text-[var(--accent)]">Privacy</Link>
+              <Link href="/terms" className="smooth-nav-link hover:text-[var(--accent)]">Terms</Link>
+              <Link href="/contact" className="smooth-nav-link hover:text-[var(--accent)]">Contact</Link>
+            </nav>
           </div>
+          <p className="mx-auto mt-6 max-w-6xl text-center text-xs text-[var(--muted)]">
+            © {new Date().getFullYear()} Strivon. All rights reserved.
+          </p>
         </footer>
     </PageWithBackground>
   );

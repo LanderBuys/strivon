@@ -9,6 +9,7 @@ export interface WaitlistEntry {
   id: string;
   email: string;
   name?: string | null;
+  country?: string | null;
   createdAt: string;
 }
 
@@ -111,7 +112,7 @@ export default function AdminWaitlistPage() {
                 <tr className="border-b border-white/10">
                   <th className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 pb-2 pr-4">#</th>
                   <th className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 pb-2 pr-4">Email</th>
-                  <th className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 pb-2 pr-4">Name</th>
+                  <th className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 pb-2 pr-4">Country</th>
                   <th className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 pb-2 pr-4">Joined</th>
                 </tr>
               </thead>
@@ -120,7 +121,7 @@ export default function AdminWaitlistPage() {
                   <tr key={entry.id} className="border-b border-white/5 hover:bg-white/5">
                     <td className="py-2.5 pr-4 text-xs text-slate-500 tabular-nums">{i + 1}</td>
                     <td className="py-2.5 pr-4 text-sm text-slate-200 font-medium">{entry.email}</td>
-                    <td className="py-2.5 pr-4 text-sm text-slate-400">{entry.name ?? "—"}</td>
+                    <td className="py-2.5 pr-4 text-sm text-slate-400">{entry.country ?? entry.name ?? "—"}</td>
                     <td className="py-2.5 text-xs text-slate-500">{formatReportDate(entry.createdAt)}</td>
                   </tr>
                 ))}

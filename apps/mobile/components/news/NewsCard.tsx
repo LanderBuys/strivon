@@ -241,6 +241,10 @@ export const NewsCard = React.memo(function NewsCard({
           </View>
         )}
         <View style={[styles.featuredActions, { borderTopColor: colors.divider }]}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => { haptics.light(); router.push('/(tabs)/create'); }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} activeOpacity={0.6}>
+            <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.primary} />
+            <Text style={[styles.actionLabel, { color: colors.primary }]}>Discuss</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={() => { haptics.light(); router.push(`/news/${article.id}`); }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} activeOpacity={0.6}>
             <Ionicons name="chatbubble-outline" size={20} color={colors.secondary} />
             {article.comments && article.comments > 0 && (
@@ -375,6 +379,18 @@ export const NewsCard = React.memo(function NewsCard({
 
         {/* Actions - Simplified */}
         <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              haptics.light();
+              router.push('/(tabs)/create');
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.6}
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.primary} />
+            <Text style={[styles.actionLabel, { color: colors.primary }]}>Discuss</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => {
@@ -643,6 +659,10 @@ const styles = StyleSheet.create({
   actionCount: {
     fontSize: Typography.xs,
     fontWeight: '500',
+  },
+  actionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   imageErrorContainer: {
     justifyContent: 'center',

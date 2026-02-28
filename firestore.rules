@@ -55,6 +55,11 @@ service cloud.firestore {
     }
 
     // Config: admins list (emails). Create config/admins with { emails: ["you@example.com"] } in Firebase Console. Read by any auth user.
+    // config/waitlistCount: public read (for static site waitlist counter); only Cloud Functions write.
+    match /config/waitlistCount {
+      allow read: if true;
+      allow write: if false;
+    }
     match /config/{docId} {
       allow read: if request.auth != null;
       allow write: if false;
@@ -153,15 +158,10 @@ service cloud.firestore {
       allow update, delete: if request.auth != null;
     }
 
-    // Waitlist: anyone can add email (no auth); only admins can read/update/delete
-    match /waitlist/{entryId} {
-      allow create: if (request.resource.data.keys().hasOnly(['email', 'createdAt'])
-        || request.resource.data.keys().hasOnly(['email', 'name', 'createdAt']))
-        && request.resource.data.email is string
-        && request.resource.data.email.size() <= 256
-        && (!('name' in request.resource.data) || (request.resource.data.name is string && request.resource.data.name.size() <= 200))
-        && request.resource.data.createdAt is timestamp;
-      allow read, list, update, delete: if request.auth != null && isAdmin();
+    // Waitlist: anyone can add email (no auth); only admins can read/update/delete. Client writes from website use source: "website".
+    match /waitlist/{docId} {
+      allow create: if true;
+      allow read, update, delete: if false;
     }
   }
 }
